@@ -1,5 +1,5 @@
 # Projekt z baz danych 
 
-# pasy do admina:
-#  login: admin
-#  haslo: admin
+pasy do admina: <br/>
+ login: admin   <br/>
+ haslo: admin   <br/>
