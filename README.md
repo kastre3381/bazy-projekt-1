@@ -1,5 +1,5 @@
 # Projekt z baz danych 
 
 pasy do admina: <br/>
- login: admin   <br/>
+<span style="margin-left:10px> login: admin </span>  <br/>
  haslo: admin   <br/>
