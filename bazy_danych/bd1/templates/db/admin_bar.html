@@ -1,0 +1,38 @@
+{% extends "main/base.html" %}
+{% block title %} Polecenia własne {% endblock %}
+{% block data %}
+<br><br>
+<form method="get" action="{% url 'own_query' %}">
+    <div class="form-group">    
+        <label for="query">Wprowadź zapytanie:</label>
+        <input type="text" name="query" id="query" value="{{ query }}"  class="form-control">
+        <br>
+        <button type="submit" class="btn btn-primary mb-2" style="text-align:center;">Pokaż wynik</button>
+    </div>
+</form>
+<br><br>
+{% if error_message %}
+    <p class="h4" style="color:red">{{ error_message }}</p>
+{% elif results %}
+    <table class="table table-dark">
+        <thead>
+            <tr>
+                {% for key in results.0.keys %}
+                    <th scope="col">{{ key }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in results %}
+                <tr>
+                    {% for value in row.values %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="h4" style="color:red">No results to display.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "main/base.html" %}
+{% block title %} Dokumentacja {% endblock %}
+{% load static %}
+{% block data %}
+<br><br>
+<iframe class="embed-responsive-item" src="{% static 'Riemann.pdf' %}" width='100%' height='80%'></iframe>
+{% endblock %}
