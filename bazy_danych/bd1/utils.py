@@ -1,4 +1,5 @@
 from django.db import connection
+from django.contrib.auth.models import User, Group
 
 def execute_raw_sql_query(query, params=None):
     with connection.cursor() as cursor:
@@ -12,3 +13,6 @@ def execute_raw_sql_query(query, params=None):
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return results
+
+def group_checker(request, name):
+    return request.user.groups.filter(name=name).exists()

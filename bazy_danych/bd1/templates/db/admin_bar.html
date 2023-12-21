@@ -2,6 +2,14 @@
 {% block title %} Polecenia własne {% endblock %}
 {% block data %}
 <br><br>
+<ul class="list-group list-group-flush">
+    <li class="list-group-item">Wszystkie tablice znajdujące się w ERD są w schemacie "projekt"</li>
+    <li class="list-group-item">Dostęp do danych użytkowników w tablicy "auth_user"</li>
+    <li class="list-group-item">Dostęp do uprawnień danych grup w tablicy "auth_group_permissions"</li>
+    <li class="list-group-item">Dostęp do uprawnień użytkowników w tablicy "auth_user_user_permissions"</li>
+    <li class="list-group-item">Dostęp do danych dotyczących sesji w tablicy "django_session"</li>
+</ul>
+<br><br>
 <form method="get" action="{% url 'own_query' %}">
     <div class="form-group">    
         <label for="query">Wprowadź zapytanie:</label>
@@ -32,7 +40,5 @@
             {% endfor %}
         </tbody>
     </table>
-{% else %}
-    <p class="h4" style="color:red">No results to display.</p>
 {% endif %}
 {% endblock %}

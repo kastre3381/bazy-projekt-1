@@ -1,13 +1,11 @@
-{% load static %}
 <DOCTYPE !html>
-<html lang="pl">
+{% load static %}
+    <html lang="pl">
     <head>
         <title> {% block title %} {% endblock %}</title>
         <meta charset="URF-8">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-        <meta name="viewport" content="width-device=width, initial-scale=1.0">
-        <link rel="icon" type="image/x-icon" href="{% static 'images/icon.png' %}">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <link rel="icon" href="{% static 'images/icon.png' %}">
     </head>
     <body>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -23,28 +21,40 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/dokumentacja">Dokumentacja</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dokumentacja">SELECT</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dokumentacja">INSERT</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dokumentacja">UPDATE</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dokumentacja">DELETE</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/own_query">Polecenia własne</a>
-                        </li>
+                        {% if user.is_authenticated %}
+                            {% if user.is_superuser %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/own_query">Polecenia własne</a>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/select">SELECT</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/insert">INSERT</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/update">UPDATE</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/delete">DELETE</a>
+                                </li>
+                            {% endif %}
+                        {% endif %}
                     </ul>
                 </div>
                 <div>
                     <ul class="navbar-nav">
+                        {% if user.is_authenticated %}
+                        <span class="navbar-text">{{user.username}} | </span>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Wyloguj się</a>
+                        </li>
+                        {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="/login">Zaloguj się</a>
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -54,13 +64,12 @@
         {% endblock %}
         </div>
         <br><br>
-        <footer class="bg-body-tertiary text-center bg-dark" style="bottom: 0; position: fixed; left: 0; width: 100%;">
-            <div class="container p-4">
-                <div class="text-center p-3" style="background-color: rgba(0, 0, 0, 0.05);">
-                    © 2023/2024 Copyright:
-                    <span class="text-reset fw-bold">Kacper Tracz</span>
-                </div>
-            </div>
-        </footer>
+        <div class="container">
+            <footer class="footer mt-auto py-3 bg-dark text-white" style="bottom: 0; position: fixed; left: 0; width: 100%;">
+              <div class="container text-center">
+                © 2023/2024 Copyright:&emsp;<span class="text-reset fw-bold">Kacper Tracz</span>
+              </div>
+            </footer>
+          </div>
     </body>        
 </html>

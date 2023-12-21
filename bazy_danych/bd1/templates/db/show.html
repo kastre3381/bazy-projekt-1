@@ -1,0 +1,37 @@
+{% extends 'main/base.html' %}
+{% block title %} SELECT {% endblock %}
+{% block data%}
+<br><br>
+
+
+<form method="post" action="{% url 'select' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+<br><br>
+{% if error_message %}
+    <p class="h4" style="color:red">{{ error_message }}</p>
+{% elif results %}
+    <p class="h4" style="color:red">{{ query }}</p>
+    <br>
+    <table class="table table-dark">
+        <thead>
+            <tr>
+                {% for key in results.0.keys %}
+                    <th scope="col">{{ key }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in results %}
+                <tr>
+                    {% for value in row.values %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+{% endblock %}
