@@ -3,4 +3,96 @@
 {% block data%}
 <br><br>
 
+
+
+<!-- Formularz dla tablicy 'lista' -->
+
+
+{% if is_rybak %}
+
+<div style="align-items: center; text-align: center">
+    <button id="butt1" onclick="show('div1')" class="btn btn-primary"> Dodaj rybaka </button> 
+    <button id="butt2" onclick="show('div2')" class="btn btn-primary"> Dodaj do listy </button> 
+    <button id="butt1" onclick="show('div3')" class="btn btn-primary"> Dodaj licencję </button> 
+</div>
+
+<div id="div1" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_imie">Imię:</label>
+            <input type="text" class="form-control" name="rybak_imie" required>
+            <br>
+            <label for="rybak_nazwisko">Nazwisko:</label>
+            <input type="text" class="form-control" name="rybak_nazwisko" required>
+            <br>
+            <label for="rybak_wiek">Wiek:</label>
+            <input type="number" class="form-control" name="rybak_wiek" required>
+            <br>
+            <label for="rybak_stan_konta">Stan konta:</label>
+            <input type="number" class="form-control" name="rybak_stan_konta" required>
+            <br>
+            <button type="submit" name="submit_rybak" class="btn btn-primary">Dodaj rybaka</button>
+        </div>
+    </form>
+</div>
+
+<div id="div2" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="lista_rybak_id">ID rybaka:</label>
+            <input type="number" class="form-control" name="lista_rybak_id" required>
+            <br>
+            <label for="lista_zwierze">Zwierzę:</label>
+            <input type="text" class="form-control" name="lista_zwierze" required>
+            <br>
+            <label for="lista_ilosc_ryb">Ilość:</label>
+            <input type="number" class="form-control" name="lista_ilosc_ryb" required>
+            <br>
+            <button type="submit" name="submit_lista" class="btn btn-primary">Dodaj listę/do listy</button>
+        </div>
+    </form>
+</div>
+<div id="div3" style="display:none;">
+    
+</div>
+
+{% else %}
+
+<button id="butt1" onclick="show('div1')"> 1 </button> <br>
+<button id="butt2" onclick="show('div2')"> 2 </button> <br><br>
+
+<div id="div1" style="display:none;">xd3</div>
+<div id="div2" >xd4</div>
+
+{% endif %}
+
+
+{% if query %}
+    <br><br>
+    <p class="h4" id="q" style="color:red">{{ query }}</p>
+{% endif %}
+{% if error_message %}
+    <br><br>
+    <p class="h4" id="err" style="color:red">{{ error_message }}</p>
+{% endif %}
+
+
+<script>
+    function show(name)
+    {
+        document.getElementById("div1").style.display = "none";
+        document.getElementById("div2").style.display = "none";
+        document.getElementById("div3").style.display = "none";
+    
+        document.getElementById(name).style.display = "block";
+
+        document.getElementById("q").innerHTML = ""
+        document.getElementById("err").innerHTML = ""
+    }
+</script>
+
 {% endblock %}

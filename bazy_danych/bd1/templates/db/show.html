@@ -3,12 +3,35 @@
 {% block data%}
 <br><br>
 
+<form method="get" action="{% url 'select' %}">
+    <select class="form-control" name="query" id="query" value="{{ query }}">
+        {% if is_rybak %}
+        <option value='1'>Wypisz rybaków</option>
+        {% endif %}
+        <option value='2'>Wypisz zbiorniki</option>
+        <option value='3'>Wypisz rynki</option>
+        <option value='4'>Wypisz oddziały</option>
+        <option value='5'>Wypisz zwierzęta</option>
+        {% if is_straznik %}
+        <option value='6'>Wypisz strażników</option>
+        {% endif %}
+        <option value='7'>Wypisz gatunki i ilość zwierząt do nich przynależnych</option>
+        <option value='8'>Wypisz nielegalne zbiorniki</option>
+        <option value='9'>Wypisz rybaków starszych niż 30 lat</option>
+        <option value='10'>Wypisz rybaków posiadających przynajmniej 20 zwierząt</option>
+        <option value='11'>Wypisz listy</option>
+        <option value='12'>Wypisz listy rybaków, których imiona zaczynają się na literę 'A'</option>
+        <option value='13'>Wypisz uśrednioną cenę wszystkich ryb w poszczególnych marketach</option>
+        <option value='14'></option>
+        <option value='15'></option>
+        <option value='16'></option>
 
-<form method="post" action="{% url 'select' %}">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Submit</button>
+    </select>
+    <br>
+    <button type="submit" class="btn btn-primary">Pokaż</button>
 </form>
+
+
 <br><br>
 {% if error_message %}
     <p class="h4" style="color:red">{{ error_message }}</p>
