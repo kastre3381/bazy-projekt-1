@@ -19,7 +19,7 @@ create table projekt.oddzial_glowny
 	nazwa varchar not null,
 	oddzial_nadrzedny varchar not null,
 	constraint oddzial_pk primary key (nazwa),
-	constraint oddzial_fk foreign key(oddzial_nadrzedny) references projekt.oddzial_glowny(nazwa)
+	constraint oddzial_fk foreign key(oddzial_nadrzedny) references projekt.oddzial_glowny(nazwa) on delete cascade
 );
 
 create table projekt.straznik
@@ -30,7 +30,7 @@ create table projekt.straznik
 	wiek integer not null,
 	oddzial_id varchar not null,
 	constraint straznik_pk primary key (straznik_id),
-	constraint straznik_fk foreign key (oddzial_id) references projekt.oddzial(nazwa)
+	constraint straznik_fk foreign key (oddzial_id) references projekt.oddzial(nazwa) on delete cascade
 );
 
 
@@ -51,7 +51,7 @@ create table projekt.rybak
 	wiek integer not null,
 	licencja_id integer,
 	constraint rybak_pk primary key (rybak_id),
-	constraint rybak_fk foreign key (licencja_id) references projekt.licencja(licencja_id)
+	constraint rybak_fk foreign key (licencja_id) references projekt.licencja(licencja_id) on delete cascade
 );
 
 
@@ -79,6 +79,7 @@ language plpgsql;
 create trigger licence_creator before insert on projekt.rybak for each row execute procedure create_licence();
 
 
+
 create table projekt.zbiornik
 (
 	nazwa varchar not null,
@@ -86,7 +87,7 @@ create table projekt.zbiornik
 	legalny bool not null,
 	oddzial varchar not null,
 	constraint zbiornik_pk primary key (nazwa),
-	constraint zbiornik_fk foreign key (oddzial) references projekt.oddzial(nazwa)
+	constraint zbiornik_fk foreign key (oddzial) references projekt.oddzial(nazwa) on delete cascade
 );
 
 create or replace function legal_setter() returns trigger as 
@@ -112,18 +113,97 @@ create trigger legal_setter before insert on projekt.zbiornik for each row execu
 	constraint zwierze_pk primary key (nazwa)
  );
 
+create table projekt.zwierze_zbiornik
+(
+	zwierze_zbiornik_id serial,
+	zwierze varchar not null,
+	zbiornik varchar not null,
+	constraint zwierze_zbiornik_pk primary key(zwierze_zbiornik_id),
+	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade,
+	constraint zbiornik_fk foreign key (zbiornik) references projekt.zbiornik(nazwa) on delete cascade
+);
+
+create or replace function add_animals() returns trigger as 
+$$
+begin 
+	insert into projekt.zwierze_zbiornik (zwierze, zbiornik) select z.nazwa, new.nazwa from projekt.zwierze z order by random() limit random_generator(10, 30);
+return new;
+end
+$$
+language plpgsql;
+
+create trigger animal_adder after insert on projekt.zbiornik for each row execute procedure add_animals();
+
  create table projekt.lista
  (
 	lista_id serial,
 	zwierze varchar not null,
 	rybak integer not null,
+	ilosc integer not null,
 	constraint lista_pk primary key(lista_id),
-	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa),
-	constraint rybak_fk foreign key (rybak) references projekt.rybak(rybak_id)
+	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade,
+	constraint rybak_fk foreign key (rybak) references projekt.rybak(rybak_id) on delete cascade
  );
+
+create or replace function rybak_delete() returns trigger as 
+$$
+begin 
+	if old.licencja_id in (select l.licencja_id from projekt.licencja l where l.licencja_id = old.licencja_id) then
+		delete from projekt.licencja where old.licencja_id = licencja_id;
+	end if;
+	delete from projekt.lista  where old.rybak_id = rybak;
+	return old;
+end
+$$
+language plpgsql;
+
+
+create trigger rybak_delete after delete on projekt.rybak for each row execute procedure rybak_delete();
  
+create or replace function create_list() returns trigger as 
+$$
+begin 
+	insert into projekt.lista (zwierze, rybak, ilosc) select z.nazwa, cast(new.rybak_id as integer), random_generator(1, 5) from projekt.zwierze z where z.nazwa in 
+											    (select z2.nazwa from projekt.zwierze z2 order by random() limit random_generator(0, 20));
+	return new;										  
+end
+$$
+language plpgsql;
+
+create trigger list_creator after insert on projekt.rybak for each row execute procedure create_list();
 
 
+create table projekt.rynek
+(
+	nazwa varchar not null,
+	oddzial_glowny varchar not null,
+	constraint rynek_pk primary key (nazwa),
+	constraint oddzial_fk foreign key (oddzial_glowny) references projekt.oddzial_glowny(nazwa) on delete cascade
+);
+
+create table projekt.rynek_zwierze
+(
+	rynek_zwierze_id serial,
+	rynek varchar not null,
+	zwierze varchar not null,
+	cena numeric(10, 2) not null,
+	constraint rynek_zwierze_pk primary key (rynek_zwierze_id),
+	constraint rynek_fk foreign key (rynek) references projekt.rynek(nazwa),
+	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade
+);
+
+create or replace function add_to_market() returns trigger as 
+$$
+declare 
+rec record;
+begin 
+	insert into projekt.rynek_zwierze (rynek, zwierze, cena) select new.nazwa, z.nazwa, cast(random_generator(1, 10000) as float)/100  from projekt.zwierze z;
+	return new;
+end
+$$
+language plpgsql;
+
+create trigger market_price_adder after insert on projekt.rynek for each row execute procedure add_to_market();
 
 --------------- dodawanie danych do bazy ---------------------------
 
@@ -452,6 +532,304 @@ INSERT INTO projekt.straznik (imie, nazwisko, wiek, oddzial_id) VALUES
  
 
 
+ 
+
+
+INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
+VALUES
+  ('Łosoś atlantycki', 'Ryba', TRUE),
+  ('Dorsz atlantycki', 'Ryba', TRUE),
+  ('Rekin biały', 'Ryba', FALSE),
+  ('Żółw morski', 'Gad', TRUE),
+  ('Delfin butlonosy', 'Ssak', TRUE),
+  ('Orka oceaniczna', 'Ssak', FALSE),
+  ('Kosatka orka', 'Ssak', FALSE),
+  ('Foka pospolita', 'Ssak', TRUE),
+  ('Krokodyl morski', 'Gad', FALSE),
+  ('Osyka jadowita', 'Ryba', FALSE),
+  ('Morski konik polny', 'Gad', TRUE),
+  ('Murena europejska', 'Ryba', TRUE),
+  ('Żarłacz biały', 'Ryba', FALSE),
+  ('Meduza błękitna', 'Gad', FALSE),
+  ('Morski żółw skórzasty', 'Gad', TRUE),
+  ('Pingwin cesarski', 'Ptak', TRUE),
+  ('Skalar', 'Ryba', TRUE),
+  ('Sum afrykański', 'Ryba', TRUE),
+  ('Żabka drzewna', 'Płaz', TRUE),
+  ('Krab błękitny', 'Stawonóg', TRUE),
+  ('Golfina', 'Ssak', TRUE),
+  ('Żółw błotny', 'Gad', TRUE),
+  ('Żółw ozdobny', 'Gad', TRUE),
+  ('Osadnik błotny', 'Ptak', TRUE),
+  ('Żyrafa morska', 'Ryba', FALSE),
+  ('Żarłacz wielorybi', 'Ryba', TRUE),
+  ('Długoszpar', 'Ryba', TRUE),
+  ('Ryba skrzydłowa', 'Ryba', TRUE),
+  ('Rekin wielorybi', 'Ryba', FALSE);
+-- Dodaj kolejne zwierzęta według potrzeb.
+
+ 
+ INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
+VALUES
+  ('Żarłacz tygrysi', 'Ryba', FALSE),
+  ('Rybik żółty', 'Ryba', TRUE),
+  ('Gwóźdź wodny', 'Gad', TRUE),
+  ('Manta birostris', 'Ryba', TRUE),
+  ('Gatunek X', 'Nieznany', FALSE),
+  ('Żaba drzewna', 'Płaz', TRUE),
+  ('Królik morski', 'Ssak', FALSE),
+  ('Rekin skąposzczetny', 'Ryba', FALSE),
+  ('Świnka morska', 'Ssak', TRUE),
+  ('Długi płaszcz', 'Stawonóg', TRUE),
+  ('Bocian czarny', 'Ptak', TRUE),
+  ('Wielka karpia', 'Ryba', TRUE),
+  ('Żaglowiec płetwowy', 'Ryba', TRUE),
+  ('Żółw morski zielony', 'Gad', TRUE),
+  ('Nurkujący pingwin', 'Ptak', TRUE),
+  ('Wielki rurkowiec', 'Stawonóg', FALSE),
+  ('Osaczka', 'Ryba', TRUE),
+  ('Żuraw', 'Ptak', TRUE),
+  ('Ośmiornica krótsza', 'Stawonóg', TRUE),
+  ('Piękna syrena', 'Nieznany', TRUE),
+  ('Lamparcińc płowy', 'Ryba', TRUE),
+  ('Rybka akwariowa', 'Ryba', TRUE),
+  ('Żuraw czarny', 'Ptak', TRUE),
+  ('Myszoródka', 'Stawonóg', TRUE),
+  ('Żółw błotny śmierdzący', 'Gad', FALSE),
+  ('Pstry krocznik', 'Ptak', TRUE),
+  ('Lusterko rybne', 'Ryba', TRUE),
+  ('Rybik ćwiklawy', 'Ryba', TRUE),
+  ('Rekin piłonosy', 'Ryba', FALSE);
+-- Dodaj kolejne zwierzęta według potrzeb.
+
+ INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
+VALUES
+  ('Pstrąg tęczowy', 'Ryba', TRUE),
+  ('Rurkonóg błękitny', 'Stawonóg', TRUE),
+  ('Długonoga mewa', 'Ptak', TRUE),
+  ('Rogatka amazońska', 'Ryba', FALSE),
+  ('Manta kolorowa', 'Ryba', TRUE),
+  ('Kameleon wodny', 'Gad', FALSE),
+  ('Żółw błotny szarej skóry', 'Gad', TRUE),
+  ('Łasiczka morska', 'Ssak', TRUE),
+  ('Skurczak białonogi', 'Stawonóg', TRUE),
+  ('Kruk morski', 'Ptak', TRUE),
+  ('Gwóźdź wodny zielony', 'Gad', TRUE),
+  ('Wężowiec olbrzymi', 'Ryba', FALSE),
+  ('Dmuchawiec morski', 'Ptak', TRUE),
+  ('Strzałka morska', 'Stawonóg', TRUE),
+  ('Osaczka zielona', 'Ryba', TRUE),
+  ('Karpia zjadający lody', 'Ryba', TRUE),
+  ('Jaskółka wodna', 'Ptak', TRUE),
+  ('Zebra wodna', 'Ssak', FALSE),
+  ('Pingwin kokardowy', 'Ptak', TRUE),
+  ('Żabka krasnobrzucha', 'Płaz', TRUE),
+  ('Rekin lśniący', 'Ryba', FALSE),
+  ('Murena krótkobrzucha', 'Ryba', TRUE),
+  ('Rybik malowany', 'Ryba', TRUE),
+  ('Wielki chrząszcz wodny', 'Stawonóg', TRUE),
+  ('Sęp morski', 'Ptak', TRUE),
+  ('Wielki skowronek morski', 'Ptak', TRUE),
+  ('Długonoga ropucha', 'Płaz', TRUE),
+  ('Króliczek morski', 'Ssak', TRUE),
+  ('Kurczak wodny', 'Ptak', TRUE),
+  ('Nurkujący jeż', 'Stawonóg', TRUE);
+-- Dodaj kolejne zwierzęta według potrzeb.
+
+ INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
+VALUES
+  ('Żarłacz młot', 'Ryba', FALSE),
+  ('Rybitwa morska', 'Ptak', TRUE),
+  ('Kołomroczek', 'Stawonóg', TRUE),
+  ('Ostrogon', 'Ryba', TRUE),
+  ('Delfin długonosy', 'Ssak', TRUE),
+  ('Krabały', 'Stawonóg', TRUE),
+  ('Karas wodny', 'Ryba', TRUE),
+  ('Skowron morski', 'Ptak', TRUE),
+  ('Żaba czerwonobrzucha', 'Płaz', TRUE),
+  ('Makrela błękitna', 'Ryba', TRUE),
+  ('Wrona morska', 'Ptak', TRUE),
+  ('Chruścik morski', 'Stawonóg', TRUE),
+  ('Łososiowate', 'Ryba', TRUE),
+  ('Mewa rzeczna', 'Ptak', TRUE),
+  ('Żabka zielonobrzucha', 'Płaz', TRUE),
+  ('Rak błotny', 'Stawonóg', TRUE),
+  ('Rozgwiazda', 'Stawonóg', TRUE),
+  ('Bielik morski', 'Ptak', TRUE),
+  ('Żyrafa wodna', 'Ssak', FALSE),
+  ('Rekin młot', 'Ryba', FALSE),
+  ('Bocian morski', 'Ptak', TRUE),
+  ('Złota rybka', 'Ryba', TRUE),
+  ('Dzikopysk', 'Stawonóg', TRUE),
+  ('Żółw wodny', 'Gad', TRUE),
+  ('Ryba ananasowa', 'Ryba', TRUE),
+  ('Fregata morska', 'Ptak', TRUE),
+  ('Murena długobrzucha', 'Ryba', TRUE),
+  ('Żabka zielononoga', 'Płaz', TRUE),
+  ('Mewa szara', 'Ptak', TRUE);
+-- Dodaj kolejne zwierzęta według potrzeb.
+
+ INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
+VALUES
+  ('Żarłacz wielki', 'Ryba', FALSE),
+  ('Nurek białobrzuchy', 'Ptak', TRUE),
+  ('Szczupak wodny', 'Ryba', TRUE),
+  ('Biegacz morski', 'Stawonóg', TRUE),
+  ('Nurkujący delfin', 'Ssak', TRUE),
+  ('Gawron morski', 'Ptak', TRUE),
+  ('Żółw morski żółty', 'Gad', TRUE),
+  ('Złoty orzeł morski', 'Ptak', TRUE),
+  ('Płaz rudy', 'Płaz', TRUE),
+  ('Miecznik błękitny', 'Ryba', TRUE),
+  ('Wróbel morski', 'Ptak', TRUE),
+  ('Jeleń morski', 'Ssak', FALSE),
+  ('Krewetka błękitna', 'Stawonóg', TRUE),
+  ('Żółw morski pomarańczowy', 'Gad', TRUE),
+  ('Pingwin królewski', 'Ptak', TRUE),
+  ('Ropucha zielona', 'Płaz', TRUE),
+  ('Rak morski', 'Stawonóg', TRUE),
+  ('Żuraw morski', 'Ptak', TRUE),
+  ('Dzwoniec morski', 'Stawonóg', TRUE),
+  ('Gąska morska', 'Ptak', TRUE),
+  ('Żółw morski czerwony', 'Gad', TRUE),
+  ('Płaszczka morska', 'Ryba', TRUE),
+  ('Królik morski szary', 'Ssak', TRUE),
+  ('Sikora morska', 'Ptak', TRUE),
+  ('Mysz wodna', 'Stawonóg', TRUE),
+  ('Rekin podwodny', 'Ryba', FALSE),
+  ('Żabka modra', 'Płaz', TRUE),
+  ('Zander', 'Ryba', TRUE),
+  ('Delfin szary', 'Ssak', TRUE);
+-- Dodaj kolejne zwierzęta według potrzeb.
+
+
+INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek) VALUES
+  ('Adam', 'Kowalski', 5000.00, 30),
+  ('Anna', 'Nowak', 7500.50, 28),
+  ('Piotr', 'Wiśniewski', 6200.75, 35),
+  ('Katarzyna', 'Jankowska', 4800.25, 29),
+  ('Michał', 'Kamiński', 5500.80, 34),
+  ('Ewa', 'Lewandowska', 7000.00, 31),
+  ('Krzysztof', 'Szymański', 8000.50, 33),
+  ('Alicja', 'Dąbrowska', 6200.75, 27),
+  ('Rafał', 'Wójcik', 5300.20, 32),
+  ('Joanna', 'Zielińska', 4800.25, 29),
+  ('Bartosz', 'Kowalczyk', 7200.90, 31),
+  ('Monika', 'Kaczmarek', 5900.60, 30),
+  ('Tomasz', 'Nowakowski', 6700.40, 28),
+  ('Agnieszka', 'Piotrowska', 5500.80, 34),
+  ('Grzegorz', 'Jankowski', 6200.75, 29),
+  ('Karolina', 'Michalak', 4800.25, 31),
+  ('Łukasz', 'Kowal', 7000.00, 27),
+  ('Kinga', 'Kowalczyk', 8000.50, 33),
+  ('Radosław', 'Włodarczyk', 6200.75, 29),
+  ('Magdalena', 'Jankowska', 5300.20, 32),
+  ('Mateusz', 'Szymański', 4800.25, 29),
+  ('Kamila', 'Wiśniewska', 7200.90, 31),
+  ('Marcin', 'Lewandowski', 5900.60, 30),
+  ('Natalia', 'Kowalska', 6700.40, 28),
+  ('Artur', 'Nowak', 5500.80, 34),
+  ('Weronika', 'Kamińska', 6200.75, 29),
+  ('Łukasz', 'Szymański', 4800.25, 31),
+  ('Dominika', 'Dąbrowska', 7000.00, 27),
+  ('Daniel', 'Zieliński', 8000.50, 33),
+  ('Patrycja', 'Dąbrowska', 6200.75, 29),
+  ('Tomasz', 'Wójcik', 5300.20, 32),
+  ('Agata', 'Zielińska', 4800.25, 29),
+  ('Przemysław', 'Kowalczyk', 7200.90, 31),
+  ('Sylwia', 'Kowal', 5900.60, 30),
+  ('Krystian', 'Michalak', 6700.40, 28),
+  ('Oliwia', 'Jankowska', 5500.80, 34),
+  ('Paweł', 'Kowalski', 6200.75, 29),
+  ('Karolina', 'Nowakowska', 4800.25, 31),
+  ('Bartłomiej', 'Nowak', 7000.00, 27),
+  ('Aleksandra', 'Kowalczyk', 8000.50, 33),
+  ('Jakub', 'Wiśniewski', 6200.75, 29),
+  ('Natalia', 'Jankowska', 5300.20, 32),
+  ('Łukasz', 'Szymański', 4800.25, 29),
+  ('Katarzyna', 'Wiśniewska', 7200.90, 31),
+  ('Mikołaj', 'Lewandowski', 5900.60, 30),
+  ('Dominika', 'Kowalska', 6700.40, 28),
+  ('Adrian', 'Kowalczyk', 5500.80, 34),
+  ('Nadia', 'Kowal', 6200.75, 29),
+  ('Mateusz', 'Michalak', 4800.25, 31);
+
+ INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek)
+VALUES
+  ('Lukas', 'Schmidt', 5000.00, 30),
+  ('Anna', 'Müller', 7500.50, 28),
+  ('Felix', 'Schneider', 6200.75, 35),
+  ('Sophie', 'Fischer', 4800.25, 29),
+  ('Max', 'Weber', 5500.80, 34),
+  ('Lena', 'Schulz', 7000.00, 31),
+  ('Tim', 'Wagner', 8000.50, 33),
+  ('Laura', 'Schäfer', 6200.75, 27),
+  ('Jonas', 'Müller', 5300.20, 32),
+  ('Elena', 'Koch', 4800.25, 29),
+  ('Lukas', 'Schulz', 7200.90, 31),
+  ('Sophia', 'Hofmann', 5900.60, 30),
+  ('David', 'Wagner', 6700.40, 28),
+  ('Emma', 'Schmidt', 5500.80, 34),
+  ('Benjamin', 'Müller', 6200.75, 29),
+  ('Mia', 'Fischer', 4800.25, 31),
+  ('Julian', 'Weber', 7000.00, 27),
+  ('Sophie', 'Schulz', 8000.50, 33),
+  ('Leon', 'Müller', 6200.75, 29),
+  ('Lara', 'Schneider', 5300.20, 32),
+  ('Luca', 'Koch', 4800.25, 29),
+  ('Hannah', 'Hofmann', 7200.90, 31),
+  ('Nico', 'Müller', 5900.60, 30),
+  ('Lara', 'Schmidt', 6700.40, 28),
+  ('Finn', 'Weber', 5500.80, 34),
+  ('Noah', 'Hofmann', 6200.75, 29),
+  ('Sophie', 'Wagner', 4800.25, 31),
+  ('Emily', 'Koch', 7000.00, 27),
+  ('Liam', 'Schulz', 8000.50, 33);
+ 
+ INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek)
+VALUES
+  ('Antoine', 'Lefevre', 5000.00, 30),
+  ('Clara', 'Dupont', 7500.50, 28),
+  ('Lucas', 'Martin', 6200.75, 35),
+  ('Emma', 'Dubois', 4800.25, 29),
+  ('Hugo', 'Leroux', 5500.80, 34),
+  ('Lea', 'Bernard', 7000.00, 31),
+  ('Louis', 'Lefevre', 8000.50, 33),
+  ('Manon', 'Dupont', 6200.75, 27),
+  ('Mathis', 'Martin', 5300.20, 32),
+  ('Camille', 'Dubois', 4800.25, 29),
+  ('Paul', 'Leroux', 7200.90, 31),
+  ('Léa', 'Bernard', 5900.60, 30),
+  ('Jules', 'Lefevre', 6700.40, 28),
+  ('Zoe', 'Dupont', 5500.80, 34),
+  ('Enzo', 'Martin', 6200.75, 29),
+  ('Manon', 'Dubois', 4800.25, 31),
+  ('Louis', 'Leroux', 7000.00, 27),
+  ('Inès', 'Bernard', 8000.50, 33),
+  ('Lucas', 'Lefevre', 6200.75, 29),
+  ('Emma', 'Dupont', 5300.20, 32),
+  ('Hugo', 'Martin', 4800.25, 29),
+  ('Manon', 'Dubois', 7200.90, 31),
+  ('Louis', 'Leroux', 5900.60, 30),
+  ('Inès', 'Bernard', 6700.40, 28),
+  ('Lucas', 'Lefevre', 5500.80, 34),
+  ('Emma', 'Dupont', 6200.75, 29),
+  ('Hugo', 'Martin', 4800.25, 31),
+  ('Manon', 'Dubois', 7000.00, 27),
+  ('Louis', 'Leroux', 8000.50, 33),
+  ('Inès', 'Bernard', 6200.75, 29),
+  ('Lucas', 'Lefevre', 5300.20, 32),
+  ('Emma', 'Dupont', 4800.25, 29),
+  ('Hugo', 'Martin', 7200.90, 31),
+  ('Manon', 'Dubois', 5900.60, 30),
+  ('Louis', 'Leroux', 6700.40, 28),
+  ('Inès', 'Bernard', 5500.80, 34),
+  ('Jules', 'Lefevre', 6200.75, 29),
+  ('Zoe', 'Dupont', 4800.25, 31),
+  ('Enzo', 'Martin', 7000.00, 27),
+  ('Manon', 'Dubois', 8000.50, 33);
+
+ 
 -- Województwo dolnośląskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
@@ -828,301 +1206,42 @@ VALUES
   ('Lac du Lalagou', 33000000, TRUE, 'Gujana Francuska'),
   ('Lac de Tuerlédan', 56300000, TRUE, 'Gujana Francuska');
  
-
-
-INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
-VALUES
-  ('Łosoś atlantycki', 'Ryba', TRUE),
-  ('Dorsz atlantycki', 'Ryba', TRUE),
-  ('Rekin biały', 'Ryba', FALSE),
-  ('Żółw morski', 'Gad', TRUE),
-  ('Delfin butlonosy', 'Ssak', TRUE),
-  ('Orka oceaniczna', 'Ssak', FALSE),
-  ('Kosatka orka', 'Ssak', FALSE),
-  ('Foka pospolita', 'Ssak', TRUE),
-  ('Krokodyl morski', 'Gad', FALSE),
-  ('Osyka jadowita', 'Ryba', FALSE),
-  ('Morski konik polny', 'Gad', TRUE),
-  ('Murena europejska', 'Ryba', TRUE),
-  ('Żarłacz biały', 'Ryba', FALSE),
-  ('Meduza błękitna', 'Gad', FALSE),
-  ('Morski żółw skórzasty', 'Gad', TRUE),
-  ('Pingwin cesarski', 'Ptak', TRUE),
-  ('Skalar', 'Ryba', TRUE),
-  ('Sum afrykański', 'Ryba', TRUE),
-  ('Żabka drzewna', 'Płaz', TRUE),
-  ('Krab błękitny', 'Stawonóg', TRUE),
-  ('Golfina', 'Ssak', TRUE),
-  ('Żółw błotny', 'Gad', TRUE),
-  ('Żółw ozdobny', 'Gad', TRUE),
-  ('Osadnik błotny', 'Ptak', TRUE),
-  ('Żyrafa morska', 'Ryba', FALSE),
-  ('Żarłacz wielorybi', 'Ryba', TRUE),
-  ('Długoszpar', 'Ryba', TRUE),
-  ('Ryba skrzydłowa', 'Ryba', TRUE),
-  ('Rekin wielorybi', 'Ryba', FALSE);
--- Dodaj kolejne zwierzęta według potrzeb.
-
  
- INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
-VALUES
-  ('Żarłacz tygrysi', 'Ryba', FALSE),
-  ('Rybik żółty', 'Ryba', TRUE),
-  ('Gwóźdź wodny', 'Gad', TRUE),
-  ('Manta birostris', 'Ryba', TRUE),
-  ('Gatunek X', 'Nieznany', FALSE),
-  ('Żaba drzewna', 'Płaz', TRUE),
-  ('Królik morski', 'Ssak', FALSE),
-  ('Rekin skąposzczetny', 'Ryba', FALSE),
-  ('Świnka morska', 'Ssak', TRUE),
-  ('Długi płaszcz', 'Stawonóg', TRUE),
-  ('Bocian czarny', 'Ptak', TRUE),
-  ('Wielka karpia', 'Ryba', TRUE),
-  ('Żaglowiec płetwowy', 'Ryba', TRUE),
-  ('Żółw morski zielony', 'Gad', TRUE),
-  ('Nurkujący pingwin', 'Ptak', TRUE),
-  ('Wielki rurkowiec', 'Stawonóg', FALSE),
-  ('Osaczka', 'Ryba', TRUE),
-  ('Żuraw', 'Ptak', TRUE),
-  ('Ośmiornica krótsza', 'Stawonóg', TRUE),
-  ('Piękna syrena', 'Nieznany', TRUE),
-  ('Lamparcińc płowy', 'Ryba', TRUE),
-  ('Rybka akwariowa', 'Ryba', TRUE),
-  ('Żuraw czarny', 'Ptak', TRUE),
-  ('Myszoródka', 'Stawonóg', TRUE),
-  ('Żółw błotny śmierdzący', 'Gad', FALSE),
-  ('Pstry krocznik', 'Ptak', TRUE),
-  ('Lusterko rybne', 'Ryba', TRUE),
-  ('Rybik ćwiklawy', 'Ryba', TRUE),
-  ('Rekin piłonosy', 'Ryba', FALSE);
--- Dodaj kolejne zwierzęta według potrzeb.
-
- INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
-VALUES
-  ('Pstrąg tęczowy', 'Ryba', TRUE),
-  ('Rurkonóg błękitny', 'Stawonóg', TRUE),
-  ('Długonoga mewa', 'Ptak', TRUE),
-  ('Rogatka amazońska', 'Ryba', FALSE),
-  ('Manta kolorowa', 'Ryba', TRUE),
-  ('Kameleon wodny', 'Gad', FALSE),
-  ('Żółw błotny szarej skóry', 'Gad', TRUE),
-  ('Łasiczka morska', 'Ssak', TRUE),
-  ('Skurczak białonogi', 'Stawonóg', TRUE),
-  ('Kruk morski', 'Ptak', TRUE),
-  ('Gwóźdź wodny zielony', 'Gad', TRUE),
-  ('Wężowiec olbrzymi', 'Ryba', FALSE),
-  ('Dmuchawiec morski', 'Ptak', TRUE),
-  ('Strzałka morska', 'Stawonóg', TRUE),
-  ('Osaczka zielona', 'Ryba', TRUE),
-  ('Karpia zjadający lody', 'Ryba', TRUE),
-  ('Jaskółka wodna', 'Ptak', TRUE),
-  ('Zebra wodna', 'Ssak', FALSE),
-  ('Pingwin kokardowy', 'Ptak', TRUE),
-  ('Żabka krasnobrzucha', 'Płaz', TRUE),
-  ('Rekin lśniący', 'Ryba', FALSE),
-  ('Murena krótkobrzucha', 'Ryba', TRUE),
-  ('Rybik malowany', 'Ryba', TRUE),
-  ('Wielki chrząszcz wodny', 'Stawonóg', TRUE),
-  ('Sęp morski', 'Ptak', TRUE),
-  ('Wielki skowronek morski', 'Ptak', TRUE),
-  ('Długonoga ropucha', 'Płaz', TRUE),
-  ('Króliczek morski', 'Ssak', TRUE),
-  ('Kurczak wodny', 'Ptak', TRUE),
-  ('Nurkujący jeż', 'Stawonóg', TRUE);
--- Dodaj kolejne zwierzęta według potrzeb.
-
- INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
-VALUES
-  ('Żarłacz młot', 'Ryba', FALSE),
-  ('Rybitwa morska', 'Ptak', TRUE),
-  ('Kołomroczek', 'Stawonóg', TRUE),
-  ('Ostrogon', 'Ryba', TRUE),
-  ('Delfin długonosy', 'Ssak', TRUE),
-  ('Krabały', 'Stawonóg', TRUE),
-  ('Karas wodny', 'Ryba', TRUE),
-  ('Skowron morski', 'Ptak', TRUE),
-  ('Żaba czerwonobrzucha', 'Płaz', TRUE),
-  ('Makrela błękitna', 'Ryba', TRUE),
-  ('Wrona morska', 'Ptak', TRUE),
-  ('Chruścik morski', 'Stawonóg', TRUE),
-  ('Łososiowate', 'Ryba', TRUE),
-  ('Mewa rzeczna', 'Ptak', TRUE),
-  ('Żabka zielonobrzucha', 'Płaz', TRUE),
-  ('Rak błotny', 'Stawonóg', TRUE),
-  ('Rozgwiazda', 'Stawonóg', TRUE),
-  ('Bielik morski', 'Ptak', TRUE),
-  ('Żyrafa wodna', 'Ssak', FALSE),
-  ('Rekin młot', 'Ryba', FALSE),
-  ('Bocian morski', 'Ptak', TRUE),
-  ('Złota rybka', 'Ryba', TRUE),
-  ('Dzikopysk', 'Stawonóg', TRUE),
-  ('Żółw wodny', 'Gad', TRUE),
-  ('Ryba ananasowa', 'Ryba', TRUE),
-  ('Fregata morska', 'Ptak', TRUE),
-  ('Murena długobrzucha', 'Ryba', TRUE),
-  ('Żabka zielononoga', 'Płaz', TRUE),
-  ('Mewa szara', 'Ptak', TRUE);
--- Dodaj kolejne zwierzęta według potrzeb.
-
- INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
-VALUES
-  ('Żarłacz wielki', 'Ryba', FALSE),
-  ('Nurek białobrzuchy', 'Ptak', TRUE),
-  ('Szczupak wodny', 'Ryba', TRUE),
-  ('Biegacz morski', 'Stawonóg', TRUE),
-  ('Nurkujący delfin', 'Ssak', TRUE),
-  ('Gawron morski', 'Ptak', TRUE),
-  ('Żółw morski żółty', 'Gad', TRUE),
-  ('Złoty orzeł morski', 'Ptak', TRUE),
-  ('Płaz rudy', 'Płaz', TRUE),
-  ('Miecznik błękitny', 'Ryba', TRUE),
-  ('Wróbel morski', 'Ptak', TRUE),
-  ('Jeleń morski', 'Ssak', FALSE),
-  ('Krewetka błękitna', 'Stawonóg', TRUE),
-  ('Żółw morski pomarańczowy', 'Gad', TRUE),
-  ('Pingwin królewski', 'Ptak', TRUE),
-  ('Ropucha zielona', 'Płaz', TRUE),
-  ('Rak morski', 'Stawonóg', TRUE),
-  ('Żuraw morski', 'Ptak', TRUE),
-  ('Dzwoniec morski', 'Stawonóg', TRUE),
-  ('Gąska morska', 'Ptak', TRUE),
-  ('Żółw morski czerwony', 'Gad', TRUE),
-  ('Płaszczka morska', 'Ryba', TRUE),
-  ('Królik morski szary', 'Ssak', TRUE),
-  ('Sikora morska', 'Ptak', TRUE),
-  ('Mysz wodna', 'Stawonóg', TRUE),
-  ('Rekin podwodny', 'Ryba', FALSE),
-  ('Żabka modra', 'Płaz', TRUE),
-  ('Zander', 'Ryba', TRUE),
-  ('Delfin szary', 'Ssak', TRUE);
--- Dodaj kolejne zwierzęta według potrzeb.
-
-
-INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek) VALUES
-  ('Adam', 'Kowalski', 5000.00, 30),
-  ('Anna', 'Nowak', 7500.50, 28),
-  ('Piotr', 'Wiśniewski', 6200.75, 35),
-  ('Katarzyna', 'Jankowska', 4800.25, 29),
-  ('Michał', 'Kamiński', 5500.80, 34),
-  ('Ewa', 'Lewandowska', 7000.00, 31),
-  ('Krzysztof', 'Szymański', 8000.50, 33),
-  ('Alicja', 'Dąbrowska', 6200.75, 27),
-  ('Rafał', 'Wójcik', 5300.20, 32),
-  ('Joanna', 'Zielińska', 4800.25, 29),
-  ('Bartosz', 'Kowalczyk', 7200.90, 31),
-  ('Monika', 'Kaczmarek', 5900.60, 30),
-  ('Tomasz', 'Nowakowski', 6700.40, 28),
-  ('Agnieszka', 'Piotrowska', 5500.80, 34),
-  ('Grzegorz', 'Jankowski', 6200.75, 29),
-  ('Karolina', 'Michalak', 4800.25, 31),
-  ('Łukasz', 'Kowal', 7000.00, 27),
-  ('Kinga', 'Kowalczyk', 8000.50, 33),
-  ('Radosław', 'Włodarczyk', 6200.75, 29),
-  ('Magdalena', 'Jankowska', 5300.20, 32),
-  ('Mateusz', 'Szymański', 4800.25, 29),
-  ('Kamila', 'Wiśniewska', 7200.90, 31),
-  ('Marcin', 'Lewandowski', 5900.60, 30),
-  ('Natalia', 'Kowalska', 6700.40, 28),
-  ('Artur', 'Nowak', 5500.80, 34),
-  ('Weronika', 'Kamińska', 6200.75, 29),
-  ('Łukasz', 'Szymański', 4800.25, 31),
-  ('Dominika', 'Dąbrowska', 7000.00, 27),
-  ('Daniel', 'Zieliński', 8000.50, 33),
-  ('Patrycja', 'Dąbrowska', 6200.75, 29),
-  ('Tomasz', 'Wójcik', 5300.20, 32),
-  ('Agata', 'Zielińska', 4800.25, 29),
-  ('Przemysław', 'Kowalczyk', 7200.90, 31),
-  ('Sylwia', 'Kowal', 5900.60, 30),
-  ('Krystian', 'Michalak', 6700.40, 28),
-  ('Oliwia', 'Jankowska', 5500.80, 34),
-  ('Paweł', 'Kowalski', 6200.75, 29),
-  ('Karolina', 'Nowakowska', 4800.25, 31),
-  ('Bartłomiej', 'Nowak', 7000.00, 27),
-  ('Aleksandra', 'Kowalczyk', 8000.50, 33),
-  ('Jakub', 'Wiśniewski', 6200.75, 29),
-  ('Natalia', 'Jankowska', 5300.20, 32),
-  ('Łukasz', 'Szymański', 4800.25, 29),
-  ('Katarzyna', 'Wiśniewska', 7200.90, 31),
-  ('Mikołaj', 'Lewandowski', 5900.60, 30),
-  ('Dominika', 'Kowalska', 6700.40, 28),
-  ('Adrian', 'Kowalczyk', 5500.80, 34),
-  ('Nadia', 'Kowal', 6200.75, 29),
-  ('Mateusz', 'Michalak', 4800.25, 31);
-
- INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek)
-VALUES
-  ('Lukas', 'Schmidt', 5000.00, 30),
-  ('Anna', 'Müller', 7500.50, 28),
-  ('Felix', 'Schneider', 6200.75, 35),
-  ('Sophie', 'Fischer', 4800.25, 29),
-  ('Max', 'Weber', 5500.80, 34),
-  ('Lena', 'Schulz', 7000.00, 31),
-  ('Tim', 'Wagner', 8000.50, 33),
-  ('Laura', 'Schäfer', 6200.75, 27),
-  ('Jonas', 'Müller', 5300.20, 32),
-  ('Elena', 'Koch', 4800.25, 29),
-  ('Lukas', 'Schulz', 7200.90, 31),
-  ('Sophia', 'Hofmann', 5900.60, 30),
-  ('David', 'Wagner', 6700.40, 28),
-  ('Emma', 'Schmidt', 5500.80, 34),
-  ('Benjamin', 'Müller', 6200.75, 29),
-  ('Mia', 'Fischer', 4800.25, 31),
-  ('Julian', 'Weber', 7000.00, 27),
-  ('Sophie', 'Schulz', 8000.50, 33),
-  ('Leon', 'Müller', 6200.75, 29),
-  ('Lara', 'Schneider', 5300.20, 32),
-  ('Luca', 'Koch', 4800.25, 29),
-  ('Hannah', 'Hofmann', 7200.90, 31),
-  ('Nico', 'Müller', 5900.60, 30),
-  ('Lara', 'Schmidt', 6700.40, 28),
-  ('Finn', 'Weber', 5500.80, 34),
-  ('Noah', 'Hofmann', 6200.75, 29),
-  ('Sophie', 'Wagner', 4800.25, 31),
-  ('Emily', 'Koch', 7000.00, 27),
-  ('Liam', 'Schulz', 8000.50, 33);
  
- INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek)
+ INSERT INTO projekt.rynek (nazwa, oddzial_glowny)
 VALUES
-  ('Antoine', 'Lefevre', 5000.00, 30),
-  ('Clara', 'Dupont', 7500.50, 28),
-  ('Lucas', 'Martin', 6200.75, 35),
-  ('Emma', 'Dubois', 4800.25, 29),
-  ('Hugo', 'Leroux', 5500.80, 34),
-  ('Lea', 'Bernard', 7000.00, 31),
-  ('Louis', 'Lefevre', 8000.50, 33),
-  ('Manon', 'Dupont', 6200.75, 27),
-  ('Mathis', 'Martin', 5300.20, 32),
-  ('Camille', 'Dubois', 4800.25, 29),
-  ('Paul', 'Leroux', 7200.90, 31),
-  ('Léa', 'Bernard', 5900.60, 30),
-  ('Jules', 'Lefevre', 6700.40, 28),
-  ('Zoe', 'Dupont', 5500.80, 34),
-  ('Enzo', 'Martin', 6200.75, 29),
-  ('Manon', 'Dubois', 4800.25, 31),
-  ('Louis', 'Leroux', 7000.00, 27),
-  ('Inès', 'Bernard', 8000.50, 33),
-  ('Lucas', 'Lefevre', 6200.75, 29),
-  ('Emma', 'Dupont', 5300.20, 32),
-  ('Hugo', 'Martin', 4800.25, 29),
-  ('Manon', 'Dubois', 7200.90, 31),
-  ('Louis', 'Leroux', 5900.60, 30),
-  ('Inès', 'Bernard', 6700.40, 28),
-  ('Lucas', 'Lefevre', 5500.80, 34),
-  ('Emma', 'Dupont', 6200.75, 29),
-  ('Hugo', 'Martin', 4800.25, 31),
-  ('Manon', 'Dubois', 7000.00, 27),
-  ('Louis', 'Leroux', 8000.50, 33),
-  ('Inès', 'Bernard', 6200.75, 29),
-  ('Lucas', 'Lefevre', 5300.20, 32),
-  ('Emma', 'Dupont', 4800.25, 29),
-  ('Hugo', 'Martin', 7200.90, 31),
-  ('Manon', 'Dubois', 5900.60, 30),
-  ('Louis', 'Leroux', 6700.40, 28),
-  ('Inès', 'Bernard', 5500.80, 34),
-  ('Jules', 'Lefevre', 6200.75, 29),
-  ('Zoe', 'Dupont', 4800.25, 31),
-  ('Enzo', 'Martin', 7000.00, 27),
-  ('Manon', 'Dubois', 8000.50, 33);
+  ('Dino', 'Polska'),
+  ('Frac', 'Polska'),
+  ('Polomarket', 'Polska'),
+  ('Top Market', 'Polska'),
+  ('Topaz', 'Polska'),
+  ('Społem', 'Polska');
 
+-- Niemcy
+INSERT INTO projekt.rynek (nazwa, oddzial_glowny)
+VALUES
+  ('Edeka', 'Niemcy'),
+  ('Lidl', 'Niemcy'),
+  ('Aldi', 'Niemcy'),
+  ('Rewe', 'Niemcy'),
+  ('Kaufland', 'Niemcy'),
+  ('Penny', 'Niemcy');
+
+-- Francja
+INSERT INTO projekt.rynek (nazwa, oddzial_glowny)
+VALUES
+  ('Auchan', 'Francja'),
+  ('Carrefour', 'Francja'),
+  ('Intermarche', 'Francja'),
+  ('Simply Market', 'Francja');
+ 
+ 
+ 
+ 
  
 -- drop schema projekt cascade;
+ 
+ 
+ 
+ 
+ 
