@@ -11,9 +11,9 @@
 {% if is_rybak %}
 
 <div style="align-items: center; text-align: center">
-    <button id="butt1" onclick="show('div1')" class="btn btn-primary"> Dodaj rybaka </button> 
-    <button id="butt2" onclick="show('div2')" class="btn btn-primary"> Dodaj do listy </button> 
-    <button id="butt1" onclick="show('div3')" class="btn btn-primary"> Dodaj licencję </button> 
+    <button id="butt1" onclick="show_rybak('div1')" class="btn btn-primary"> Dodaj 'rybak' </button> 
+    <button id="butt2" onclick="show_rybak('div2')" class="btn btn-primary"> Dodaj 'lista' </button> 
+    <button id="butt1" onclick="show_rybak('div3')" class="btn btn-primary"> Dodaj 'licencja' </button> 
 </div>
 
 <div id="div1" style="display:none;">
@@ -32,6 +32,9 @@
             <br>
             <label for="rybak_stan_konta">Stan konta:</label>
             <input type="number" class="form-control" name="rybak_stan_konta" required>
+            <br>
+            <label for="rybak_licencja_id">ID licencji:</label>
+            <input type="number" class="form-control" name="rybak_licencja_id">
             <br>
             <button type="submit" name="submit_rybak" class="btn btn-primary">Dodaj rybaka</button>
         </div>
@@ -57,17 +60,245 @@
     </form>
 </div>
 <div id="div3" style="display:none;">
-    
+    <br>
+    <p class="h4" id="q" style="color:red">Datę podajemy w formacie: RRRR-MM-DD</p>
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="licencja_data_startu">Data startu:</label>
+            <input type="number" class="form-control" name="lista_rybak_id" required>
+            <br>
+            <label for="licencja_data_konca">Data końca:</label>
+            <input type="text" class="form-control" name="lista_zwierze" required>
+            <br>
+            <button type="submit" name="submit_licencja" class="btn btn-primary">Dodaj listę/do listy</button>
+        </div>
+    </form>
 </div>
 
-{% else %}
+{% elif user.is_superuser%}
 
-<button id="butt1" onclick="show('div1')"> 1 </button> <br>
-<button id="butt2" onclick="show('div2')"> 2 </button> <br><br>
+<div style="align-items: center; text-align: center">
+    <button id="butt1" onclick="show('div1')" class="btn btn-primary"> Dodaj 'rybak' </button> 
+    <button id="butt2" onclick="show('div2')" class="btn btn-primary"> Dodaj 'lista' </button> 
+    <button id="butt3" onclick="show('div3')" class="btn btn-primary"> Dodaj 'licencja' </button> <br><br>
+    <button id="butt4" onclick="show('div4')" class="btn btn-primary"> Dodaj 'oddzial_glowny' </button> 
+    <button id="butt5" onclick="show('div5')" class="btn btn-primary"> Dodaj 'oddzial' </button> 
+    <button id="butt6" onclick="show('div6')" class="btn btn-primary"> Dodaj 'rynek' </button> <br><br>
+    <button id="butt7" onclick="show('div7')" class="btn btn-primary"> Dodaj 'rynek_zwierze' </button> 
+    <button id="butt8" onclick="show('div8')" class="btn btn-primary"> Dodaj 'zwierze_zbiornik' </button> 
+    <button id="butt9" onclick="show('div9')" class="btn btn-primary"> Dodaj 'zwierze' </button> <br><br>
+    <button id="butt10" onclick="show('div10')" class="btn btn-primary"> Dodaj 'zbiornik' </button> 
+    <button id="butt11" onclick="show('div11')" class="btn btn-primary"> Dodaj 'straznik' </button> 
+</div>
 
-<div id="div1" style="display:none;">xd3</div>
-<div id="div2" >xd4</div>
+<div id="div1" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_imie">Imię:</label>
+            <input type="text" class="form-control" name="rybak_imie" required>
+            <br>
+            <label for="rybak_nazwisko">Nazwisko:</label>
+            <input type="text" class="form-control" name="rybak_nazwisko" required>
+            <br>
+            <label for="rybak_wiek">Wiek:</label>
+            <input type="number" class="form-control" name="rybak_wiek" required>
+            <br>
+            <label for="rybak_stan_konta">Stan konta:</label>
+            <input type="number" class="form-control" name="rybak_stan_konta" required>
+            <br>
+            <label for="rybak_licencja_id">ID licencji:</label>
+            <input type="number" class="form-control" name="rybak_licencja_id">
+            <br>
+            <button type="submit" name="submit_rybak" class="btn btn-primary">Dodaj rybaka</button>
+        </div>
+    </form>
+</div>
 
+<div id="div2" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="lista_rybak_id">ID rybaka:</label>
+            <input type="number" class="form-control" name="lista_rybak_id" required>
+            <br>
+            <label for="lista_zwierze">Zwierzę:</label>
+            <input type="text" class="form-control" name="lista_zwierze" required>
+            <br>
+            <label for="lista_ilosc_ryb">Ilość:</label>
+            <input type="number" class="form-control" name="lista_ilosc_ryb" required>
+            <br>
+            <button type="submit" name="submit_lista" class="btn btn-primary">Dodaj listę/do listy</button>
+        </div>
+    </form>
+</div>
+
+<div id="div3" style="display:none;">
+    <br>
+    <p class="h4" style="color:red">Datę podajemy w formacie: RRRR-MM-DD</p>
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="licencja_data_startu">Data startu:</label>
+            <input type="text" class="form-control" name="licencja_data_startu" required>
+            <br>
+            <label for="licencja_data_konca">Data końca:</label>
+            <input type="text" class="form-control" name="licencja_data_konca" required>
+            <br>
+            <button type="submit" name="submit_licencja" class="btn btn-primary">Dodaj listę/do listy</button>
+        </div>
+    </form>
+</div>
+
+<div id="div4" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="oddzial_glowny_nazwa">Nazwa:</label>
+            <input type="text" class="form-control" name="oddzial_glowny_nazwa" required>
+            <br>
+            <button type="submit" name="submit_oddzial_glowny" class="btn btn-primary">Dodaj oddział główny</button>
+        </div>
+    </form>
+</div>
+
+<div id="div5" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="oddzial_nazwa">Nazwa:</label>
+            <input type="text" class="form-control" name="oddzial_nazwa" required>
+            <br>
+            <label for="oddzial_oddzial_nadrzedny">Oddział nadrzędny:</label>
+            <input type="text" class="form-control" name="oddzial_oddzial_nadrzedny" required>
+            <br>
+            <button type="submit" name="submit_oddzial" class="btn btn-primary">Dodaj oddział</button>
+        </div>
+    </form>
+</div>
+
+<div id="div6" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rynek_nazwa">Nazwa:</label>
+            <input type="text" class="form-control" name="rynek_nazwa" required>
+            <br>
+            <label for="rynek_oddzial_glowny">Oddział główny:</label>
+            <input type="text" class="form-control" name="rynek_oddzial_glowny" required>
+            <br>
+            <button type="submit" name="submit_rynek" class="btn btn-primary">Dodaj rynek</button>
+        </div>
+    </form>
+</div>
+
+<div id="div7" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rynek_zwierze_rynek">Rynek:</label>
+            <input type="text" class="form-control" name="rynek_zwierze_rynek" required>
+            <br>
+            <label for="rynek_zwierze_zwierze">Zwierzę:</label>
+            <input type="text" class="form-control" name="rynek_zwierze_zwierze" required>
+            <br>
+            <label for="rynek_zwierze_cena">Cena:</label>
+            <input type="number" class="form-control" name="rynek_zwierze_cena" required>
+            <br>
+            <button type="submit" name="submit_rynek_zwierze" class="btn btn-primary">Dodaj rynek_zwierze</button>
+        </div>
+    </form>
+</div>
+
+<div id="div8" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="zwierze_zbiornik_zwierze">Zwierzę:</label>
+            <input type="text" class="form-control" name="zwierze_zbiornik_zwierze" required>
+            <br>
+            <label for="zwierze_zbiornik_zbiornik">Zbiornik:</label>
+            <input type="text" class="form-control" name="zwierze_zbiornik_zbiornik" required>
+            <br>
+            <button type="submit" name="submit_zwierze_zbiornik" class="btn btn-primary">Dodaj zwierze_zbiornik</button>
+        </div>
+    </form>
+</div>
+
+<div id="div9" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="zwierze_nazwa">Nazwa:</label>
+            <input type="text" class="form-control" name="zwierze_nazwa" required>
+            <br>
+            <label for="zwierze_gatunek">Gatunek:</label>
+            <input type="text" class="form-control" name="zwierze_gatunek" required>
+            <br>
+            <label for="zwierze_legalna">Legalne:</label>
+            <input type="checkbox" class="form-check-input" name="zwierze_legalna" checked="checked">
+            <br>
+            <br>
+            <button type="submit" name="submit_zwierze" class="btn btn-primary">Dodaj rybaka</button>
+        </div>
+    </form>
+</div>
+
+<div id="div10" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="zbiornik_nazwa">Nazwa:</label>
+            <input type="text" class="form-control" name="zbiornik_nazwa" required>
+            <br>
+            <label for="zbiornik_objetosc">Objętość:</label>
+            <input type="number" class="form-control" name="zbiornik_objetosc" required>
+            <br>
+            <label for="zbiornik_legalny">Legalny:</label>
+            <input type="checkbox" class="form-check-input" name="zbiornik_legalny" checked="checked">
+            <br>
+            <br>
+            <label for="zbiornik_oddzial">Oddział:</label>
+            <input type="text" class="form-control" name="zbiornik_oddzial" required>
+            <br>
+            <button type="submit" name="submit_zbiornik" class="btn btn-primary">Dodaj rybaka</button>
+        </div>
+    </form>
+</div>
+
+<div id="div11" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'insert' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="straznik_imie">Imię:</label>
+            <input type="text" class="form-control" name="straznik_imie" required>
+            <br>
+            <label for="straznik_nazwisko">Nazwisko:</label>
+            <input type="text" class="form-control" name="straznik_nazwisko" required>
+            <br>
+            <label for="straznik_wiek">Wiek:</label>
+            <input type="number" class="form-control" name="straznik_wiek" required>
+            <br>
+            <label for="straznik_oddzial_id">Oddział:</label>
+            <input type="text" class="form-control" name="straznik_oddzial_id" required>
+            <br>
+            <button type="submit" name="submit_straznik" class="btn btn-primary">Dodaj rybaka</button>
+        </div>
+    </form>
+</div>
 {% endif %}
 
 
@@ -83,6 +314,26 @@
 
 <script>
     function show(name)
+    {
+        document.getElementById("div1").style.display = "none";
+        document.getElementById("div2").style.display = "none";
+        document.getElementById("div3").style.display = "none";
+        document.getElementById("div4").style.display = "none";
+        document.getElementById("div5").style.display = "none";
+        document.getElementById("div6").style.display = "none";
+        document.getElementById("div7").style.display = "none";
+        document.getElementById("div8").style.display = "none";
+        document.getElementById("div9").style.display = "none";
+        document.getElementById("div10").style.display = "none";
+        document.getElementById("div11").style.display = "none";
+    
+        document.getElementById(name).style.display = "block";
+
+        document.getElementById("q").innerHTML = ""
+        document.getElementById("err").innerHTML = ""
+    }
+
+    function show_rybak(name)
     {
         document.getElementById("div1").style.display = "none";
         document.getElementById("div2").style.display = "none";

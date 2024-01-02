@@ -1,5 +1,8 @@
+-----------------tworzenie schematu-------------------
 create schema projekt;
 
+
+------------funkcja do generowania liczb losowych z przedziału [min, max] -----------------------
 create or replace function random_generator(minimum integer, maximum integer) returns integer as 
 $$
 begin 
@@ -8,12 +11,15 @@ end
 $$
 language plpgsql;
 
+
+-----------------tablica oddzial_glowny--------------------
 create table projekt.oddzial_glowny
 (
 	nazwa varchar not null,
 	constraint oddzial_glowny_pk primary key (nazwa)
 );
 
+-----------------tablica oddzial--------------------
  create table projekt.oddzial
 (
 	nazwa varchar not null,
@@ -22,6 +28,7 @@ create table projekt.oddzial_glowny
 	constraint oddzial_fk foreign key(oddzial_nadrzedny) references projekt.oddzial_glowny(nazwa) on delete cascade
 );
 
+-----------------tablica straznik--------------------
 create table projekt.straznik
 (
 	straznik_id serial,
@@ -33,7 +40,7 @@ create table projekt.straznik
 	constraint straznik_fk foreign key (oddzial_id) references projekt.oddzial(nazwa) on delete cascade
 );
 
-
+-----------------tablica licencja--------------------
  create table projekt.licencja
  (
 	licencja_id serial,
@@ -42,6 +49,7 @@ create table projekt.straznik
 	constraint licencja_pk primary key (licencja_id)
  );
 
+-----------------tablica rybak--------------------
 create table projekt.rybak
 (
 	rybak_id serial,
@@ -49,13 +57,94 @@ create table projekt.rybak
 	nazwisko varchar not null,
 	stan_konta numeric(10,2) not null,
 	wiek integer not null,
-	licencja_id integer,
+	licencja_id integer unique,
 	constraint rybak_pk primary key (rybak_id),
 	constraint rybak_fk foreign key (licencja_id) references projekt.licencja(licencja_id) on delete cascade
 );
 
+-----------------tablica zbiornik--------------------
+create table projekt.zbiornik
+(
+	nazwa varchar not null,
+	objetosc integer not null,
+	legalny bool not null,
+	oddzial varchar not null,
+	constraint zbiornik_pk primary key (nazwa),
+	constraint zbiornik_fk foreign key (oddzial) references projekt.oddzial(nazwa) on delete cascade
+);
+
+-----------------tablica zwierze--------------------
+ create table projekt.zwierze
+ (
+	nazwa varchar not null,
+	gatunek varchar not null,
+	legalna boolean not null,
+	constraint zwierze_pk primary key (nazwa)
+ );
+
+-----------------tablica zwierze_zbiornik--------------------
+create table projekt.zwierze_zbiornik
+(
+	zwierze_zbiornik_id serial,
+	zwierze varchar not null,
+	zbiornik varchar not null,
+	constraint zwierze_zbiornik_pk primary key(zwierze_zbiornik_id),
+	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade,
+	constraint zbiornik_fk foreign key (zbiornik) references projekt.zbiornik(nazwa) on delete cascade
+);
+
+-----------------tablica lista--------------------
+ create table projekt.lista
+ (
+	lista_id serial,
+	zwierze varchar not null,
+	rybak integer not null,
+	ilosc integer not null,
+	constraint lista_pk primary key(lista_id),
+	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade,
+	constraint rybak_fk foreign key (rybak) references projekt.rybak(rybak_id) on delete cascade
+ );
+
+-----------------tablica rynek--------------------
+create table projekt.rynek
+(
+	nazwa varchar not null,
+	oddzial_glowny varchar not null,
+	constraint rynek_pk primary key (nazwa),
+	constraint oddzial_fk foreign key (oddzial_glowny) references projekt.oddzial_glowny(nazwa) on delete cascade
+);
+
+-----------------tablica rynek_zwierze--------------------
+create table projekt.rynek_zwierze
+(
+	rynek_zwierze_id serial,
+	rynek varchar not null,
+	zwierze varchar not null,
+	cena numeric(10, 2) not null,
+	constraint rynek_zwierze_pk primary key (rynek_zwierze_id),
+	constraint rynek_fk foreign key (rynek) references projekt.rynek(nazwa),
+	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade
+);
 
 
+
+-----------------wyzwalacz badajacy wprowadzane dane to tablicy licencja--------------------
+create or replace function sprawdz_licencje() returns trigger as 
+$$
+begin 
+	if new.data_startu >= new.data_konca then
+		raise exception 'Data startu nie może być później niż data zakończenia!';
+		return null;
+	else
+		return new;
+	end if;
+end
+$$
+language plpgsql;
+-----------------dodanie wyzwalacza--------------------
+create trigger licence_checker before insert or update on projekt.licencja for each row execute procedure sprawdz_licencje();
+
+-----------------wyzwalacz generujacy nowa licencje--------------------
 create or replace function create_licence()
 returns trigger as
 $$
@@ -75,21 +164,10 @@ begin
 end
 $$
 language plpgsql;
-
+-----------------dodanie wyzwalacza--------------------
 create trigger licence_creator before insert on projekt.rybak for each row execute procedure create_licence();
 
-
-
-create table projekt.zbiornik
-(
-	nazwa varchar not null,
-	objetosc integer not null,
-	legalny bool not null,
-	oddzial varchar not null,
-	constraint zbiornik_pk primary key (nazwa),
-	constraint zbiornik_fk foreign key (oddzial) references projekt.oddzial(nazwa) on delete cascade
-);
-
+-----------------wyzwalacz ustalajacy legalnosc zbiornika--------------------
 create or replace function legal_setter() returns trigger as 
 $$
 begin 
@@ -102,27 +180,10 @@ begin
 end
 $$
 language plpgsql;
-
+-----------------dodanie wyzwalacza--------------------
 create trigger legal_setter before insert on projekt.zbiornik for each row execute procedure legal_setter();
 
- create table projekt.zwierze
- (
-	nazwa varchar not null,
-	gatunek varchar not null,
-	legalna boolean not null,
-	constraint zwierze_pk primary key (nazwa)
- );
-
-create table projekt.zwierze_zbiornik
-(
-	zwierze_zbiornik_id serial,
-	zwierze varchar not null,
-	zbiornik varchar not null,
-	constraint zwierze_zbiornik_pk primary key(zwierze_zbiornik_id),
-	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade,
-	constraint zbiornik_fk foreign key (zbiornik) references projekt.zbiornik(nazwa) on delete cascade
-);
-
+-----------------wyzwalacz dodajacy zwierzeta do zbiornika--------------------
 create or replace function add_animals() returns trigger as 
 $$
 begin 
@@ -131,20 +192,10 @@ return new;
 end
 $$
 language plpgsql;
-
+-----------------dodanie wyzwalacza--------------------
 create trigger animal_adder after insert on projekt.zbiornik for each row execute procedure add_animals();
 
- create table projekt.lista
- (
-	lista_id serial,
-	zwierze varchar not null,
-	rybak integer not null,
-	ilosc integer not null,
-	constraint lista_pk primary key(lista_id),
-	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade,
-	constraint rybak_fk foreign key (rybak) references projekt.rybak(rybak_id) on delete cascade
- );
-
+-----------------wyzwalacz usuwajacy rybaka--------------------
 create or replace function rybak_delete() returns trigger as 
 $$
 begin 
@@ -156,10 +207,10 @@ begin
 end
 $$
 language plpgsql;
-
-
+-----------------dodanie wyzwalacza--------------------
 create trigger rybak_delete after delete on projekt.rybak for each row execute procedure rybak_delete();
  
+-----------------wyzwalacz tworzacy liste ryb dla rybaka--------------------
 create or replace function create_list() returns trigger as 
 $$
 begin 
@@ -169,29 +220,10 @@ begin
 end
 $$
 language plpgsql;
-
+-----------------dodanie wyzwalacza--------------------
 create trigger list_creator after insert on projekt.rybak for each row execute procedure create_list();
 
-
-create table projekt.rynek
-(
-	nazwa varchar not null,
-	oddzial_glowny varchar not null,
-	constraint rynek_pk primary key (nazwa),
-	constraint oddzial_fk foreign key (oddzial_glowny) references projekt.oddzial_glowny(nazwa) on delete cascade
-);
-
-create table projekt.rynek_zwierze
-(
-	rynek_zwierze_id serial,
-	rynek varchar not null,
-	zwierze varchar not null,
-	cena numeric(10, 2) not null,
-	constraint rynek_zwierze_pk primary key (rynek_zwierze_id),
-	constraint rynek_fk foreign key (rynek) references projekt.rynek(nazwa),
-	constraint zwierze_fk foreign key (zwierze) references projekt.zwierze(nazwa) on delete cascade
-);
-
+-----------------wyzwalacz dodajacy elementy do marketu--------------------
 create or replace function add_to_market() returns trigger as 
 $$
 declare 
@@ -202,8 +234,73 @@ begin
 end
 $$
 language plpgsql;
-
+-----------------dodanie wyzwalacza--------------------
 create trigger market_price_adder after insert on projekt.rynek for each row execute procedure add_to_market();
+
+-----------------wyzwalacz usuwajacy rynek--------------------
+create or replace function delete_rynek() returns trigger as 
+$$
+begin 
+	delete from projekt.rynek_zwierze where rynek = old.nazwa;
+	return old;
+end
+$$
+language plpgsql;
+-----------------dodanie wyzwalacza--------------------
+create trigger rynek_zwierze_deleter before delete on projekt.rynek for each row execute procedure delete_rynek();
+
+-----------------wyzwalacz usuwajacy zwierze--------------------
+create or replace function delete_zwierze() returns trigger as 
+$$
+begin 
+	delete from projekt.lista where zwierze = old.nazwa;
+	delete from projekt.zwierze_zbiornik where zwierze = old.nazwa;
+	delete from projekt.rynek_zwierze where zwierze = old.nazwa;
+	return old;
+end
+$$
+language plpgsql;
+-----------------dodanie wyzwalacza--------------------
+create trigger zwierze_deleter before delete on projekt.zwierze for each row execute procedure delete_zwierze();
+
+-----------------wyzwalacz usuwajacy zbiornik--------------------
+create or replace function delete_zbiornik() returns trigger as 
+$$
+begin 
+	delete from projekt.zwierze_zbiornik where old.nazwa = zbiornik;
+	return old;
+end
+$$
+language plpgsql;
+-----------------dodanie wyzwalacza--------------------
+create trigger zbiornik_deleter before delete on projekt.zbiornik for each row execute procedure delete_zbiornik();
+
+-----------------wyzwalacz usuwajacy oddzial--------------------
+create or replace function delete_oddzial() returns trigger as 
+$$
+begin 
+	delete from projekt.zbiornik where old.nazwa = oddzial;
+	delete from projekt.straznik where old.nazwa = oddzial_id;
+	return old;
+end
+$$
+language plpgsql;
+-----------------dodanie wyzwalacza--------------------
+create trigger oddzial_deleter before delete on projekt.oddzial for each row execute procedure delete_oddzial();
+
+-----------------wyzwalacz usuwajacy oddzial_glowny--------------------
+create or replace function delete_oddzial_glowny() returns trigger as 
+$$
+begin 
+	delete from projekt.oddzial where old.nazwa = oddzial_nadrzedny;
+	return old;
+end
+$$
+language plpgsql;
+-----------------dodanie wyzwalacza--------------------
+create trigger oddzial_glowny_deleter before delete on projekt.oddzial_glowny for each row execute procedure delete_oddzial_glowny();
+
+
 
 --------------- dodawanie danych do bazy ---------------------------
 
@@ -273,258 +370,206 @@ INSERT INTO projekt.oddzial (nazwa, oddzial_nadrzedny) VALUES
  
 
  
--- Wprowadź dane do tabeli projekt.straznik dla wszystkich polskich województw
 INSERT INTO projekt.straznik (imie, nazwisko, wiek, oddzial_id) VALUES
-  -- Dolnośląskie
   ('Jan', 'Kowalski', 30, 'Dolnośląskie'),
   ('Anna', 'Nowak', 28, 'Dolnośląskie'),
   ('Piotr', 'Wiśniewski', 35, 'Dolnośląskie'),
 
-  -- Kujawsko-Pomorskie
   ('Karolina', 'Dąbrowska', 32, 'Kujawsko-Pomorskie'),
   ('Marek', 'Lewandowski', 29, 'Kujawsko-Pomorskie'),
   ('Ewa', 'Wójcik', 34, 'Kujawsko-Pomorskie'),
 
-  -- Lubelskie
   ('Adam', 'Kowalczyk', 31, 'Lubelskie'),
   ('Agnieszka', 'Kamińska', 33, 'Lubelskie'),
   ('Grzegorz', 'Zieliński', 27, 'Lubelskie'),
 
-  -- Lubuskie
   ('Zofia', 'Kowal', 29, 'Lubuskie'),
   ('Krzysztof', 'Jankowski', 32, 'Lubuskie'),
   ('Aleksandra', 'Szymańska', 30, 'Lubuskie'),
 
-  -- Łódzkie
   ('Marcin', 'Nowacki', 33, 'Łódzkie'),
   ('Patrycja', 'Piotrowska', 28, 'Łódzkie'),
   ('Rafał', 'Kaczmarek', 31, 'Łódzkie'),
 
-  -- Małopolskie
   ('Wojciech', 'Włodarczyk', 30, 'Małopolskie'),
   ('Monika', 'Kowalczyk', 29, 'Małopolskie'),
   ('Bartosz', 'Michalak', 34, 'Małopolskie'),
 
-  -- Mazowieckie
   ('Katarzyna', 'Nowak', 32, 'Mazowieckie'),
   ('Michał', 'Kowal', 31, 'Mazowieckie'),
   ('Ewelina', 'Szymańska', 28, 'Mazowieckie'),
 
-  -- Opolskie
   ('Tomasz', 'Lewandowski', 33, 'Opolskie'),
   ('Karolina', 'Nowak', 30, 'Opolskie'),
   ('Rafał', 'Kowalczyk', 29, 'Opolskie'),
 
-  -- Podkarpackie
   ('Kamila', 'Wójcik', 32, 'Podkarpackie'),
   ('Daniel', 'Lewandowski', 28, 'Podkarpackie'),
   ('Natalia', 'Kowalska', 31, 'Podkarpackie'),
 
-  -- Podlaskie
   ('Piotr', 'Zieliński', 34, 'Podlaskie'),
   ('Magdalena', 'Nowak', 29, 'Podlaskie'),
   ('Krzysztof', 'Kowalczyk', 27, 'Podlaskie'),
 
-  -- Pomorskie
   ('Aleksandra', 'Kowalska', 30, 'Pomorskie'),
   ('Paweł', 'Lewandowski', 32, 'Pomorskie'),
   ('Karol', 'Kowalczyk', 28, 'Pomorskie'),
 
-  -- Śląskie
   ('Natalia', 'Nowak', 29, 'Śląskie'),
   ('Bartłomiej', 'Kowalczyk', 31, 'Śląskie'),
   ('Katarzyna', 'Lewandowska', 28, 'Śląskie'),
 
-  -- Świętokrzyskie
   ('Patrycja', 'Kowalczyk', 32, 'Świętokrzyskie'),
   ('Damian', 'Nowak', 30, 'Świętokrzyskie'),
   ('Sylwia', 'Wójcik', 29, 'Świętokrzyskie'),
 
-  -- Warmińsko-Mazurskie
   ('Piotr', 'Kowalski', 33, 'Warmińsko-Mazurskie'),
   ('Marta', 'Nowak', 31, 'Warmińsko-Mazurskie'),
   ('Krzysztof', 'Lewandowski', 28, 'Warmińsko-Mazurskie'),
 
-  -- Wielkopolskie
   ('Anna', 'Kowalska', 30, 'Wielkopolskie'),
   ('Mateusz', 'Nowak', 28, 'Wielkopolskie'),
   ('Karolina', 'Lewandowska', 32, 'Wielkopolskie'),
 
-  -- Zachodniopomorskie
   ('Tomasz', 'Kowalczyk', 29, 'Zachodniopomorskie'),
   ('Monika', 'Lewandowska', 31, 'Zachodniopomorskie'),
   ('Kamil', 'Nowak', 28, 'Zachodniopomorskie');
 
- -- Wprowadź dane do tabeli projekt.straznik dla niemieckich krajów związkowych (landów)
+
 INSERT INTO projekt.straznik (imie, nazwisko, wiek, oddzial_id) VALUES
-  -- Badenia-Wirtembergia
   ('Hans', 'Schmidt', 30, 'Badenia-Wirtembergia'),
   ('Anna', 'Müller', 28, 'Badenia-Wirtembergia'),
   ('Stefan', 'Schneider', 35, 'Badenia-Wirtembergia'),
 
-  -- Bawaria
   ('Monika', 'Fischer', 32, 'Bawaria'),
   ('Lukas', 'Weber', 29, 'Bawaria'),
   ('Sophie', 'Schulz', 34, 'Bawaria'),
 
-  -- Bekle
   ('Tim', 'Wagner', 31, 'Bekle'),
   ('Laura', 'Schäfer', 33, 'Bekle'),
   ('Max', 'Koch', 27, 'Bekle'),
 
-  -- Brandenburgia
   ('Leonie', 'Hoffmann', 29, 'Brandenburgia'),
   ('Paul', 'Schmidt', 32, 'Brandenburgia'),
   ('Lisa', 'Müller', 30, 'Brandenburgia'),
 
-  -- Hamburg
   ('Finn', 'Schulz', 33, 'Hamburg'),
   ('Hannah', 'Meier', 28, 'Hamburg'),
   ('Nico', 'Schneider', 31, 'Hamburg'),
 
-  -- Hesja
   ('Lara', 'Schmidt', 32, 'Hesja'),
   ('Jonas', 'Müller', 29, 'Hesja'),
   ('Elena', 'Weber', 34, 'Hesja'),
 
-  -- Meklemburgia-Pomorze Przednie
   ('Luca', 'Hofmann', 33, 'Meklemburgia-Pomorze Przednie'),
   ('Sophia', 'Koch', 30, 'Meklemburgia-Pomorze Przednie'),
   ('David', 'Wagner', 29, 'Meklemburgia-Pomorze Przednie'),
 
-  -- Dolna Saksonia
   ('Emma', 'Schulz', 32, 'Dolna Saksonia'),
   ('Benjamin', 'Müller', 28, 'Dolna Saksonia'),
   ('Mia', 'Fischer', 31, 'Dolna Saksonia'),
 
-  -- Nadrenia Północna-Westfalia
   ('Julian', 'Schmidt', 29, 'Nadrenia Północna-Westfalia'),
   ('Sophie', 'Weber', 32, 'Nadrenia Północna-Westfalia'),
   ('Leon', 'Müller', 30, 'Nadrenia Północna-Westfalia'),
 
-  -- Nadrenia-Palatynat
   ('Lena', 'Schulz', 33, 'Nadrenia-Palatynat'),
   ('Felix', 'Meier', 28, 'Nadrenia-Palatynat'),
   ('Lara', 'Schneider', 31, 'Nadrenia-Palatynat'),
 
-  -- Saara
   ('Tom', 'Schmidt', 30, 'Saara'),
   ('Julia', 'Müller', 29, 'Saara'),
   ('Finn', 'Weber', 34, 'Saara'),
 
-  -- Saksonia
   ('Sophie', 'Fischer', 31, 'Saksonia'),
   ('Noah', 'Schulz', 28, 'Saksonia'),
   ('Lukas', 'Meier', 29, 'Saksonia'),
 
-  -- Saksonia-Anhalt
   ('Emily', 'Schmidt', 32, 'Saksonia-Anhalt'),
   ('Leon', 'Müller', 30, 'Saksonia-Anhalt'),
   ('Lara', 'Weber', 28, 'Saksonia-Anhalt'),
 
-  -- Szwabia
   ('Mia', 'Hofmann', 29, 'Szwabia'),
   ('Max', 'Koch', 32, 'Szwabia'),
   ('Sophia', 'Wagner', 30, 'Szwabia'),
 
-  -- Turyngia
   ('Luca', 'Schmidt', 31, 'Turyngia'),
   ('Lara', 'Müller', 28, 'Turyngia'),
   ('Felix', 'Weber', 29, 'Turyngia'),
 
-  -- Bremia
   ('Emily', 'Schulz', 32, 'Bremia'),
   ('Mia', 'Fischer', 29, 'Bremia'),
   ('Jonas', 'Müller', 34, 'Bremia');
 
- -- Wprowadź dane do tabeli projekt.straznik dla francuskich regionów
 INSERT INTO projekt.straznik (imie, nazwisko, wiek, oddzial_id) VALUES
-  -- Wielka Prowansja-Alpy-Lazurowe Wybrzeże
   ('Antoine', 'Lefevre', 30, 'Wielka Prowansja-Alpy-Lazurowe Wybrzeże'),
   ('Clara', 'Dupont', 28, 'Wielka Prowansja-Alpy-Lazurowe Wybrzeże'),
   ('Lucas', 'Martin', 35, 'Wielka Prowansja-Alpy-Lazurowe Wybrzeże'),
 
-  -- Oksytania
   ('Emma', 'Dubois', 32, 'Oksytania'),
   ('Hugo', 'Leroux', 29, 'Oksytania'),
   ('Lea', 'Bernard', 34, 'Oksytania'),
 
-  -- Nowa Akwitania
   ('Louis', 'Lefevre', 31, 'Nowa Akwitania'),
   ('Manon', 'Dupont', 33, 'Nowa Akwitania'),
   ('Mathis', 'Martin', 27, 'Nowa Akwitania'),
 
-  -- Normandia
   ('Camille', 'Dubois', 29, 'Normandia'),
   ('Paul', 'Leroux', 32, 'Normandia'),
   ('Léa', 'Bernard', 30, 'Normandia'),
 
-  -- Hauts-de-France
   ('Jules', 'Lefevre', 33, 'Hauts-de-France'),
   ('Zoe', 'Dupont', 28, 'Hauts-de-France'),
   ('Enzo', 'Martin', 31, 'Hauts-de-France'),
 
-  -- Île-de-France
   ('Manon', 'Dubois', 32, 'Île-de-France'),
   ('Louis', 'Leroux', 29, 'Île-de-France'),
   ('Inès', 'Bernard', 34, 'Île-de-France'),
 
-  -- Grand Est
   ('Lucas', 'Lefevre', 33, 'Grand Est'),
   ('Emma', 'Dupont', 30, 'Grand Est'),
   ('Hugo', 'Martin', 29, 'Grand Est'),
 
-  -- Korsyka
   ('Lea', 'Dubois', 32, 'Korsyka'),
   ('Mathis', 'Leroux', 28, 'Korsyka'),
   ('Manon', 'Bernard', 31, 'Korsyka'),
 
-  -- Bretania
   ('Hugo', 'Lefevre', 29, 'Bretania'),
   ('Léa', 'Dupont', 32, 'Bretania'),
   ('Camille', 'Martin', 30, 'Bretania'),
 
-  -- Paj-de-la-Loire
   ('Paul', 'Dubois', 31, 'Paj-de-la-Loire'),
   ('Léa', 'Leroux', 28, 'Paj-de-la-Loire'),
   ('Jules', 'Bernard', 33, 'Paj-de-la-Loire'),
 
-  -- Kraj Loary
   ('Zoe', 'Lefevre', 32, 'Kraj Loary'),
   ('Enzo', 'Dupont', 29, 'Kraj Loary'),
   ('Inès', 'Martin', 34, 'Kraj Loary'),
 
-  -- Burgundia-Franche-Comté
   ('Manon', 'Dubois', 33, 'Burgundia-Franche-Comté'),
   ('Louis', 'Leroux', 30, 'Burgundia-Franche-Comté'),
   ('Emma', 'Bernard', 29, 'Burgundia-Franche-Comté'),
 
-  -- Kraj Basków
   ('Hugo', 'Lefevre', 32, 'Kraj Basków'),
   ('Camille', 'Dupont', 28, 'Kraj Basków'),
   ('Léa', 'Martin', 31, 'Kraj Basków'),
 
-  -- Kraj Nacjonalistów
   ('Paul', 'Dubois', 29, 'Kraj Nacjonalistów'),
   ('Zoe', 'Leroux', 32, 'Kraj Nacjonalistów'),
   ('Enzo', 'Bernard', 30, 'Kraj Nacjonalistów'),
 
-  -- Centrum-Val de Loire
   ('Manon', 'Lefevre', 33, 'Centrum-Val de Loire'),
   ('Louis', 'Dupont', 30, 'Centrum-Val de Loire'),
   ('Emma', 'Martin', 29, 'Centrum-Val de Loire'),
 
-  -- Gwadelupa
   ('Hugo', 'Dubois', 32, 'Gwadelupa'),
   ('Camille', 'Leroux', 28, 'Gwadelupa'),
   ('Léa', 'Bernard', 31, 'Gwadelupa'),
 
-  -- Martynika
   ('Paul', 'Lefevre', 29, 'Martynika'),
   ('Zoe', 'Dupont', 32, 'Martynika'),
   ('Enzo', 'Martin', 30, 'Martynika'),
 
-  -- Gujana Francuska
   ('Manon', 'Dubois', 33, 'Gujana Francuska'),
   ('Louis', 'Leroux', 30, 'Gujana Francuska'),
   ('Emma', 'Bernard', 29, 'Gujana Francuska');
@@ -566,7 +611,6 @@ VALUES
   ('Długoszpar', 'Ryba', TRUE),
   ('Ryba skrzydłowa', 'Ryba', TRUE),
   ('Rekin wielorybi', 'Ryba', FALSE);
--- Dodaj kolejne zwierzęta według potrzeb.
 
  
  INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
@@ -600,7 +644,6 @@ VALUES
   ('Lusterko rybne', 'Ryba', TRUE),
   ('Rybik ćwiklawy', 'Ryba', TRUE),
   ('Rekin piłonosy', 'Ryba', FALSE);
--- Dodaj kolejne zwierzęta według potrzeb.
 
  INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
 VALUES
@@ -634,7 +677,6 @@ VALUES
   ('Króliczek morski', 'Ssak', TRUE),
   ('Kurczak wodny', 'Ptak', TRUE),
   ('Nurkujący jeż', 'Stawonóg', TRUE);
--- Dodaj kolejne zwierzęta według potrzeb.
 
  INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
 VALUES
@@ -667,7 +709,6 @@ VALUES
   ('Murena długobrzucha', 'Ryba', TRUE),
   ('Żabka zielononoga', 'Płaz', TRUE),
   ('Mewa szara', 'Ptak', TRUE);
--- Dodaj kolejne zwierzęta według potrzeb.
 
  INSERT INTO projekt.zwierze (nazwa, gatunek, legalna)
 VALUES
@@ -700,8 +741,6 @@ VALUES
   ('Żabka modra', 'Płaz', TRUE),
   ('Zander', 'Ryba', TRUE),
   ('Delfin szary', 'Ssak', TRUE);
--- Dodaj kolejne zwierzęta według potrzeb.
-
 
 INSERT INTO projekt.rybak (imie, nazwisko, stan_konta, wiek) VALUES
   ('Adam', 'Kowalski', 5000.00, 30),
@@ -830,7 +869,6 @@ VALUES
   ('Manon', 'Dubois', 8000.50, 33);
 
  
--- Województwo dolnośląskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Bystrzyckie', 123456, TRUE, 'Dolnośląskie'),
@@ -839,7 +877,6 @@ VALUES
   ('Zalew Kamieński', 654321, TRUE, 'Dolnośląskie'),
   ('Jezioro Wielisławskie', 987654, TRUE, 'Dolnośląskie');
 
--- Województwo kujawsko-pomorskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Gopło', 123456, TRUE, 'Kujawsko-Pomorskie'),
@@ -848,7 +885,6 @@ VALUES
   ('Zbiornik Turawa', 654321, TRUE, 'Kujawsko-Pomorskie'),
   ('Jezioro Żnin', 987654, TRUE, 'Kujawsko-Pomorskie');
 
--- Województwo lubelskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Zalew Zemborzycki', 123456, TRUE, 'Lubelskie'),
@@ -857,7 +893,6 @@ VALUES
   ('Zbiornik Nielisz', 654321, TRUE, 'Lubelskie'),
   ('Jezioro Polesie Lubelskie', 987654, TRUE, 'Lubelskie');
 
--- Województwo lubuskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Dąbskie', 123456, TRUE, 'Lubuskie'),
@@ -866,7 +901,6 @@ VALUES
   ('Zbiornik Rożnowo', 654321, TRUE, 'Lubuskie'),
   ('Zbiornik Myczkowskie', 987654, TRUE, 'Lubuskie');
 
--- Województwo łódzkie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Zbiornik Sulejowski', 123456, TRUE, 'Łódzkie'),
@@ -875,7 +909,6 @@ VALUES
   ('Jezioro Zduńskie', 654321, TRUE, 'Łódzkie'),
   ('Zbiornik Dłubnia', 987654, TRUE, 'Łódzkie');
 
--- Województwo małopolskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Czorsztyńskie', 123456, TRUE, 'Małopolskie'),
@@ -884,7 +917,6 @@ VALUES
   ('Zbiornik Klimkówka', 654321, TRUE, 'Małopolskie'),
   ('Jezioro Dobczyckie', 987654, TRUE, 'Małopolskie');
 
--- Województwo mazowieckie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Zegrzyńskie', 123456, TRUE, 'Mazowieckie'),
@@ -893,7 +925,6 @@ VALUES
   ('Zbiornik Goczałkowicki', 654321, TRUE, 'Mazowieckie'),
   ('Jezioro Łaskie', 987654, TRUE, 'Mazowieckie');
 
--- Województwo opolskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Zalew Turawski', 123456, TRUE, 'Opolskie'),
@@ -902,7 +933,6 @@ VALUES
   ('Jezioro Otmuchowskie', 654321, TRUE, 'Opolskie'),
   ('Zbiornik Głębokie', 987654, TRUE, 'Opolskie');
 
--- Województwo podkarpackie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Zbiornik Klimkówa', 123456, TRUE, 'Podkarpackie'),
@@ -911,7 +941,6 @@ VALUES
   ('Zbiornik Ostrzycki', 654321, TRUE, 'Podkarpackie'),
   ('Jezioro Myczkowskie', 987654, TRUE, 'Podkarpackie');
 
--- Województwo podlaskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Wigry', 123456, TRUE, 'Podlaskie'),
@@ -920,7 +949,6 @@ VALUES
   ('Zbiornik Białystok', 654321, TRUE, 'Podlaskie'),
   ('Jezioro Hańcza', 987654, TRUE, 'Podlaskie');
 
--- Województwo pomorskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Żarnowieckie', 123456, TRUE, 'Pomorskie'),
@@ -929,7 +957,6 @@ VALUES
   ('Zalew Karczemki', 654321, TRUE, 'Pomorskie'),
   ('Jezioro Raduńskie', 987654, TRUE, 'Pomorskie');
 
--- Województwo śląskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Goczałkowickie', 123456, TRUE, 'Śląskie'),
@@ -938,7 +965,6 @@ VALUES
   ('Jezioro Łąka', 654321, TRUE, 'Śląskie'),
   ('Zbiornik Nakło-Chechło', 987654, TRUE, 'Śląskie');
 
--- Województwo świętokrzyskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Zbiornik Świętokrzyski', 123456, TRUE, 'Świętokrzyskie'),
@@ -947,7 +973,6 @@ VALUES
   ('Jezioro Klimkówka', 654321, TRUE, 'Świętokrzyskie'),
   ('Jezioro Świetokrzyskie', 987654, TRUE, 'Świętokrzyskie');
 
--- Województwo warmińsko-mazurskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Śniardwy', 123456, TRUE, 'Warmińsko-Mazurskie'),
@@ -956,7 +981,6 @@ VALUES
   ('Jezioro Łuknajno', 654321, TRUE, 'Warmińsko-Mazurskie'),
   ('Jezioro Jagodne', 987654, TRUE, 'Warmińsko-Mazurskie');
 
--- Województwo wielkopolskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Powidzkie', 123456, TRUE, 'Wielkopolskie'),
@@ -965,7 +989,6 @@ VALUES
   ('Jezioro Kierskie', 654321, TRUE, 'Wielkopolskie'),
   ('Jezioro Łebsko', 987654, TRUE, 'Wielkopolskie');
 
--- Województwo zachodniopomorskie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Jezioro Drawsko', 123456, TRUE, 'Zachodniopomorskie'),
@@ -973,7 +996,6 @@ VALUES
   ('Jezioro Bukowo', 456789, TRUE, 'Zachodniopomorskie'),
   ('Zalew Szczeciński', 654321, TRUE, 'Zachodniopomorskie');
  
- -- Bremia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Hemelinger See', 240000, TRUE, 'Bremia'),
@@ -981,7 +1003,6 @@ VALUES
   ('Salzgittersee', 4600000, TRUE, 'Bremia'),
   ('Eggesteinsee', 210000, TRUE, 'Bremia');
 
--- Hamburg
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Aussenalster', 16400000, TRUE, 'Hamburg'),
@@ -989,7 +1010,6 @@ VALUES
   ('Dove Elbe', 1900000, TRUE, 'Hamburg'),
   ('Boberger Niederung', 1350000, TRUE, 'Hamburg');
 
--- Hesja
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Edersee', 199000000, TRUE, 'Hesja'),
@@ -997,7 +1017,6 @@ VALUES
   ('Niddastausee', 4600000, TRUE, 'Hesja'),
   ('Affolderner See', 240000, TRUE, 'Hesja');
 
--- Dolna Saksonia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Zeteler Meer', 4800000, TRUE, 'Dolna Saksonia'),
@@ -1005,7 +1024,6 @@ VALUES
   ('Steinhuder Meer', 29000000, TRUE, 'Dolna Saksonia'),
   ('Hahnenknooper See', 550000, TRUE, 'Dolna Saksonia');
 
--- Nadrenia Północna-Westfalia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Baldeneysee', 14000000, TRUE, 'Nadrenia Północna-Westfalia'),
@@ -1013,7 +1031,6 @@ VALUES
   ('Aasee', 710000, TRUE, 'Nadrenia Północna-Westfalia'),
   ('Harkortsee', 12000000, TRUE, 'Nadrenia Północna-Westfalia');
 
--- Nadrenia-Palatynat
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Pfälzerwaldsee', 8700000, TRUE, 'Nadrenia-Palatynat'),
@@ -1021,7 +1038,6 @@ VALUES
   ('Silbersee', 530000, TRUE, 'Nadrenia-Palatynat'),
   ('Egelsee', 95000, TRUE, 'Nadrenia-Palatynat');
 
--- Brandenburgia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Scharmützelsee', 6500000, TRUE, 'Brandenburgia'),
@@ -1029,7 +1045,6 @@ VALUES
   ('Steinhuder Mer', 29000000, TRUE, 'Brandenburgia'),
   ('Werbellinsee', 15000000, TRUE, 'Brandenburgia');
 
--- Meklemburgia-Pomorze Przednie
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Schweriner See', 61000000, TRUE, 'Meklemburgia-Pomorze Przednie'),
@@ -1037,7 +1052,6 @@ VALUES
   ('Plauer See', 38000000, TRUE, 'Meklemburgia-Pomorze Przednie'),
   ('Dargun', 61000, TRUE, 'Meklemburgia-Pomorze Przednie');
 
--- Saara
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Losheimer See', 5600000, TRUE, 'Saara'),
@@ -1045,7 +1059,6 @@ VALUES
   ('Gudingen', 35000, TRUE, 'Saara'),
   ('Oster', 42000, TRUE, 'Saara');
 
--- Saksonia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Cospudener See', 23000000, TRUE, 'Saksonia'),
@@ -1053,7 +1066,6 @@ VALUES
   ('Geyser See', 65000, TRUE, 'Saksonia'),
   ('Döhlener See', 1300000, TRUE, 'Saksonia');
 
--- Saksonia-Anhalt
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Goseck', 160000, TRUE, 'Saksonia-Anhalt'),
@@ -1061,7 +1073,6 @@ VALUES
   ('Geiseltalsee', 50000000, TRUE, 'Saksonia-Anhalt'),
   ('Bleiloch-Talsperre', 75000000, TRUE, 'Saksonia-Anhalt');
 
--- Szlezwik-Holsztyn
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Großer Plöner See', 297000000, TRUE, 'Szlezwik-Holsztyn'),
@@ -1069,7 +1080,6 @@ VALUES
   ('Plöner See', 298000000, TRUE, 'Szlezwik-Holsztyn'),
   ('Kellersee', 1000000, TRUE, 'Szlezwik-Holsztyn');
 
--- Turyngia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Talsperre Heyda', 29000000, TRUE, 'Turyngia'),
@@ -1077,135 +1087,113 @@ VALUES
   ('Hohenfelden', 4600000, TRUE, 'Turyngia'),
   ('Leibis-Lichte', 19000000, TRUE, 'Turyngia');
  
- 
- -- Wielka Prowansja-Alpy-Lazurowe Wybrzeże
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Serre-Ponçon', 1200000000, TRUE, 'Wielka Prowansja-Alpy-Lazurowe Wybrzeże'),
   ('Lac du Verdon', 130000000, TRUE, 'Wielka Prowansja-Alpy-Lazurowe Wybrzeże'),
   ('Lac de Sainte-Croix', 76000000, TRUE, 'Wielka Prowansja-Alpy-Lazurowe Wybrzeże');
 
--- Oksytania
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Biscarrosse et de Parentis', 350000000, TRUE, 'Oksytania'),
   ('Lac du Salagou', 100000000, TRUE, 'Oksytania'),
   ('Étang de Thau', 75000000, TRUE, 'Oksytania');
 
--- Nowa Akwitania
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac d''Hourtin-Carcans', 1900000000, TRUE, 'Nowa Akwitania'),
   ('Lac de Vassivière', 44000000, TRUE, 'Nowa Akwitania'),
   ('Lac de Saint-Cassien', 14000000, TRUE, 'Nowa Akwitania');
 
--- Normandia
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de la Forêt d''Orient', 235000000, TRUE, 'Normandia'),
   ('Lac de la Dathée', 12000000, TRUE, 'Normandia'),
   ('Lac de Caniel', 1700000, TRUE, 'Normandia');
 
--- Hauts-de-France
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac du Der-Chantecoq', 35000000, TRUE, 'Hauts-de-France'),
   ('Lac d''Amance', 220000, TRUE, 'Hauts-de-France'),
   ('Lac d''Orient', 60000, TRUE, 'Hauts-de-France');
 
--- Île-de-France
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac d''Enghien', 120000, TRUE, 'Île-de-France'),
   ('Étang de Saint-Quentin', 65000, TRUE, 'Île-de-France'),
   ('Lac de la Villette', 130000, TRUE, 'Île-de-France');
 
--- Grand Est
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac du Der-Chantecoqger', 35000000, TRUE, 'Grand Est'),
   ('Lac de Gérardmer', 11500000, TRUE, 'Grand Est'),
   ('Lac de Pierre-Percée', 29000000, TRUE, 'Grand Est');
 
--- Korsyka
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Creno', 4500000, TRUE, 'Korsyka'),
   ('Lac de Tolla', 1000000, TRUE, 'Korsyka'),
   ('Lac de Nino', 9000000, TRUE, 'Korsyka');
 
--- Bretania
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Guerlédan', 56300000, TRUE, 'Bretania'),
   ('Lac de Rillé', 750000, TRUE, 'Bretania'),
   ('Lac de Grand-Lieu', 62500000, TRUE, 'Bretania');
 
--- Paj-de-la-Loire
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac le de Grand-Lieu', 62500000, TRUE, 'Paj-de-la-Loire'),
   ('Lac d''Aiguebelette', 65000000, TRUE, 'Paj-de-la-Loire'),
   ('Lac de Pannecière', 56000000, TRUE, 'Paj-de-la-Loire');
---...
--- Kontynuuj dla pozostałych regionów, dodając odpowiednie zbiorniki.
 
- -- Kraj Loary
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Lieu', 62500000, TRUE, 'Kraj Loary'),
   ('Lac de Tillé', 750000, TRUE, 'Kraj Loary'),
   ('Lac de Grand', 62500000, TRUE, 'Kraj Loary');
 
--- Burgundia-Franche-Comté
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac des Settons', 10000000, TRUE, 'Burgundia-Franche-Comté'),
   ('Lac la de Pannecière', 56000000, TRUE, 'Burgundia-Franche-Comté'),
   ('Lac de Vouglans', 605000000, TRUE, 'Burgundia-Franche-Comté');
 
--- Kraj Basków
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Saint-Pée-sur-Nivelle', 6000000, TRUE, 'Kraj Basków'),
   ('Lac de Laroin', 3500000, TRUE, 'Kraj Basków'),
   ('Lac de Guiche', 2000000, TRUE, 'Kraj Basków');
 
--- Kraj Nacjonalistów
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Waroin', 3500000, TRUE, 'Kraj Nacjonalistów'),
   ('Lac de Tuiche', 2000000, TRUE, 'Kraj Nacjonalistów'),
   ('Lac de Harrieta', 1500000, TRUE, 'Kraj Nacjonalistów');
 
--- Centrum-Val de Loire
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Mill', 62500000, TRUE, 'Centrum-Val de Loire'),
   ('Lac de Killé', 750000, TRUE, 'Centrum-Val de Loire'),
   ('Lac de Granieu', 62500000, TRUE, 'Centrum-Val de Loire');
 
--- Guadelupa
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Carbet', 7000000, TRUE, 'Gwadelupa'),
   ('Lac Malécon', 2300000, TRUE, 'Gwadelupa'),
   ('Lac de Péligre', 15000000, TRUE, 'Gwadelupa');
 
--- Martynika
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de la Montagne Pelée', 3000000, TRUE, 'Martynika'),
   ('Lac de Diamant', 3500000, TRUE, 'Martynika'),
   ('Lac de la Mauny', 4500000, TRUE, 'Martynika');
 
--- Gujana Francuska
 INSERT INTO projekt.zbiornik (nazwa, objetosc, legalny, oddzial)
 VALUES
   ('Lac de Témiscouata', 1650000000, TRUE, 'Gujana Francuska'),
   ('Lac du Lalagou', 33000000, TRUE, 'Gujana Francuska'),
   ('Lac de Tuerlédan', 56300000, TRUE, 'Gujana Francuska');
- 
  
  
  INSERT INTO projekt.rynek (nazwa, oddzial_glowny)
@@ -1217,7 +1205,7 @@ VALUES
   ('Topaz', 'Polska'),
   ('Społem', 'Polska');
 
--- Niemcy
+
 INSERT INTO projekt.rynek (nazwa, oddzial_glowny)
 VALUES
   ('Edeka', 'Niemcy'),
@@ -1227,19 +1215,24 @@ VALUES
   ('Kaufland', 'Niemcy'),
   ('Penny', 'Niemcy');
 
--- Francja
+
 INSERT INTO projekt.rynek (nazwa, oddzial_glowny)
 VALUES
   ('Auchan', 'Francja'),
   ('Carrefour', 'Francja'),
   ('Intermarche', 'Francja'),
   ('Simply Market', 'Francja');
+
+
  
- 
- 
- 
+ ----------wylaczenie wyzwalaczy uzytych do budowania bazy danych-------------------
+ alter table projekt.rybak disable trigger list_creator;
+ alter table projekt.zbiornik disable trigger legal_setter;
+ alter table projekt.rybak disable trigger licence_creator;
+
  
 -- drop schema projekt cascade;
+
  
  
  

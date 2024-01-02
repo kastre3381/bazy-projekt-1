@@ -16,16 +16,16 @@
         <option value='6'>Wypisz strażników</option>
         {% endif %}
         <option value='7'>Wypisz gatunki i ilość zwierząt do nich przynależnych</option>
+        {% if is_straznik %}
         <option value='8'>Wypisz nielegalne zbiorniki</option>
+        {% endif %}
         <option value='9'>Wypisz rybaków starszych niż 30 lat</option>
         <option value='10'>Wypisz rybaków posiadających przynajmniej 20 zwierząt</option>
+        {% if is_rybak %}
         <option value='11'>Wypisz listy</option>
         <option value='12'>Wypisz listy rybaków, których imiona zaczynają się na literę 'A'</option>
+        {% endif %}
         <option value='13'>Wypisz uśrednioną cenę wszystkich ryb w poszczególnych marketach</option>
-        <option value='14'></option>
-        <option value='15'></option>
-        <option value='16'></option>
-
     </select>
     <br>
     <button type="submit" class="btn btn-primary">Pokaż</button>
