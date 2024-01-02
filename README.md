@@ -32,4 +32,12 @@ lub <br/>
 python manage.py runserver
 ```
 
+<br/>
 
+## Potrzebne informacje
+
+### Zdjęcie ERD znajduje się w zakładce 'ERD'
+
+### Dokumentacja znaduje się w zakładce 'Dokumentacja'
+
+### Skrypt użyty do wygenerowania danych w bazie znajduje się w katalogu 'bazy_danych' pod nazwą 'script.sql'
