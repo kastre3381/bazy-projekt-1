@@ -13,7 +13,7 @@ formularze logowania/rejestracji użytkownika:
 ```
 pip install django-crispy-forms
 ```
-Kursory działające w bazie:
+Kursory użyte do wykonywania operacji w bazie:
 ```
 pip install psycopg2-binary
 ```
