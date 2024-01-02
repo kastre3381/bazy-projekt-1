@@ -1,12 +1,22 @@
 # BAZY DANYCH PROJEKT 
 
-Po sklonowaniu repo instalujemy następujące pakiety/moduły:
-<ul>
-<li> <big>pip install django</big> - framework django
-<li> <big>pip install crispy-bootstrap5</big> - css i js użyty w projekcie
-<li> <big>pip install django-crispy-forms</big> - formularze logowania/rejestracji użytkownika 
-<li> <big>pip install psycopg2-binary</big> - udostępnia kursory działające na bazie
-</ul>
+## Po sklonowaniu repo instalujemy następujące pakiety/moduły:
+framework django:
+```
+pip install django
+```
+css i js użyty w projekcie:
+```
+pip install crispy-bootstrap5
+```
+formularze logowania/rejestracji użytkownika:
+```
+pip install django-crispy-forms
+```
+Kursory działające w bazie:
+```
+pip install psycopg2-binary
+```
 
 Następnie przechodzimy do katalogu  
 ```
