@@ -8,8 +8,15 @@ Po sklonowaniu repo instalujemy następujące pakiety/moduły:
 <li> <big>pip install psycopg2-binary</big> - udostępnia kursory działające na bazie
 </ul>
 
-Następnie przechodzimy do katalogu <big> bazy-projekt-1 </big> i wywołujemy: <br/>
-<big>python3 manage.py runserver<big><br/>
+Następnie przechodzimy do katalogu  
+'''
+bazy-projekt-1 
+'''
+i wywołujemy: <br/>
+'''
+python3 manage.py runserver
+'''
 lub <br/>
-<big>python manage.py runserver<big><br/>
-
+'''
+python manage.py runserver
+'''
