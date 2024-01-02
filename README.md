@@ -18,6 +18,7 @@ Kursory działające w bazie:
 pip install psycopg2-binary
 ```
 <br/>
+
 ## Następnie przechodzimy do katalogu  
 ```
 bazy-projekt-1/bazy_danych
