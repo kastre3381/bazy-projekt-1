@@ -17,10 +17,10 @@ Kursory działające w bazie:
 ```
 pip install psycopg2-binary
 ```
-
-Następnie przechodzimy do katalogu  
+<br/>
+## Następnie przechodzimy do katalogu  
 ```
-bazy-projekt-1 
+bazy-projekt-1/bazy_danych
 ```
 i wywołujemy: <br/>
 ```
@@ -30,3 +30,5 @@ lub <br/>
 ```
 python manage.py runserver
 ```
+
+
