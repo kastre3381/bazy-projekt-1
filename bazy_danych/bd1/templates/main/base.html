@@ -19,6 +19,9 @@
                             <a class="nav-link" href="/erd">Podgląd ERD</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="/skrypt">Podgląd skryptu SQL</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="/dokumentacja">Dokumentacja</a>
                         </li>
                         {% if user.is_authenticated %}
@@ -33,9 +36,11 @@
                                 <li class="nav-item">
                                     <a class="nav-link" href="/select">SELECT</a>
                                 </li>
+                                {% if is_rybak %}
                                 <li class="nav-item">
                                     <a class="nav-link" href="/insert">INSERT</a>
                                 </li>
+                                {% endif %}
                                 <li class="nav-item">
                                     <a class="nav-link" href="/update">UPDATE</a>
                                 </li>

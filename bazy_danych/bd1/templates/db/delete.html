@@ -3,6 +3,163 @@
 {% block data%}
 <br><br>
 
+{% if is_rybak %}
 
+<div style="align-items: center; text-align: center" id="p1">
+    <button id="butt1" onclick="show('div1')" class="btn btn-primary bg-dark"> Usuń rybaka, którego imię zaczyna się na podane słowo </button> <br><br>
+    <button id="butt2" onclick="show('div2')" class="btn btn-primary bg-dark"> Usuń rybaka, posiadającego większą liczbę ryb niż podana </button> <br><br>
+    <button id="butt3" onclick="show('div3')" class="btn btn-primary bg-dark"> Usuń rybaka, starszego niż podany wiek </button> <br><br>
+</div>
+<br>
+
+<div style="align-items: center; text-align: center" id="p2">
+    <button id="butt1" onclick="show('div4')" class="btn btn-primary bg-dark"> Usuń listy, na których znajdują się legalne/nielegalne zwierzęta </button> <br><br>
+    <button id="butt2" onclick="show('div5')" class="btn btn-primary bg-dark"> Usuń listy, których rybacy posiadają ważną/nieważną licencję </button> <br><br>
+</div>
+<br>
+<div style="align-items: center; text-align: center" id="p3">
+    <button id="butt1" onclick="show('div7')" class="btn btn-primary bg-dark"> Dodaj 'rybak' </button> <br><br>
+    <button id="butt2" onclick="show('div8')" class="btn btn-primary bg-dark"> Dodaj 'lista' </button> <br><br>
+    <button id="butt3" onclick="show('div9')" class="btn btn-primary bg-dark"> Dodaj 'licencja' </button> <br><br>
+</div>
+<br>
+
+<div id="div1" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_imie">Słowo:</label>
+            <input type="text" class="form-control" name="rybak_imie" required>
+            <br>
+            <button type="submit" name="delete_rybak_imie" class="btn btn-primary">Usuń rybaka/rybaków</button>
+        </div>
+    </form>
+</div>
+
+<div id="div2" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_ryby">Liczba:</label>
+            <input type="number" class="form-control" name="rybak_ryby" required>
+            <br>
+            <button type="submit" name="delete_rybak_ryby" class="btn btn-primary">Usuń rybaka/rybaków</button>
+        </div>
+    </form>
+</div>
+
+<div id="div3" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_wiek">Wiek:</label>
+            <input type="number" class="form-control" name="rybak_wiek" required>
+            <br>
+            <button type="submit" name="delete_rybak_wiek" class="btn btn-primary">Usuń rybaka/rybaków</button>
+        </div>
+    </form>
+</div>
+
+<div id="div4" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="lista_legalne">Legalność:</label>
+            <input type="checkbox" class="form-check-input" name="lista_legalne" checked="checked">
+            <br><br>
+            <button type="submit" name="delete_lista_legalne" class="btn btn-primary">Usuń listę/listy</button>
+        </div>
+    </form>
+</div>
+
+<div id="div5" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="lista_rybak">Ważność:</label>
+            <input type="checkbox" class="form-check-input" name="lista_rybak" checked="checked">
+            <br><br>
+            <button type="submit" name="delete_lista_rybak" class="btn btn-primary">Usuń listę/listy</button>
+        </div>
+    </form>
+</div>
+
+<div id="div7" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_imie">Słowo:</label>
+            <input type="text" class="form-control" name="rybak_imie" required>
+            <br>
+            <button type="submit" name="delete_rybak_imie" class="btn btn-primary">Usuń rybaka</button>
+        </div>
+    </form>
+</div>
+
+<div id="div8" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_ryby">Liczba:</label>
+            <input type="number" class="form-control" name="rybak_ryby" required>
+            <br>
+            <button type="submit" name="delete_rybak_ryby" class="btn btn-primary">Usuń rybaka</button>
+        </div>
+    </form>
+</div>
+
+<div id="div9" style="display:none;">
+    <br>
+    <form method="post" action="{% url 'delete' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_wiek">Wiek:</label>
+            <input type="number" class="form-control" name="rybak_wiek" required>
+            <br>
+            <button type="submit" name="delete_rybak_wiek" class="btn btn-primary">Usuń rybaka</button>
+        </div>
+    </form>
+</div>
+
+{% elif is_straznik %}
+
+{% endif %}
+
+
+{% if query %}
+    <br><br>
+    <p class="h4" id="q" style="color:red">{{ query }}</p>
+{% endif %}
+{% if error_message %}
+    <br><br>
+    <p class="h4" id="err" style="color:red">{{ error_message }}</p>
+{% endif %}
+
+
+<script>
+    function show(name)
+    {
+        document.getElementById("div1").style.display = "none";
+        document.getElementById("div2").style.display = "none";
+        document.getElementById("div3").style.display = "none";
+        document.getElementById("div4").style.display = "none";
+        document.getElementById("div5").style.display = "none";
+        document.getElementById("div7").style.display = "none";
+        document.getElementById("div8").style.display = "none";
+        document.getElementById("div9").style.display = "none";
+    
+        document.getElementById(name).style.display = "block";
+
+        document.getElementById("q").innerHTML = ""
+        document.getElementById("err").innerHTML = ""
+    }
+</script>
 
 {% endblock %}

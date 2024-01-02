@@ -7,13 +7,16 @@ from .forms import *
 from django.contrib.auth import login, logout, authenticate
 # Create your views here.
 def home(request):
-    return render(request, 'main/home.html')
+    return render(request, 'main/home.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
 
 def erd(request):
     return render(request, 'main/erd.html')
 
 def dokumentacja(request):
     return render(request, 'main/dokumentacja.html')
+
+def skrypt(request):
+    return render(request, 'main/script.html')
 
 def display_data(request):
     query = request.GET.get('query', '')
@@ -88,6 +91,56 @@ def update(request):
     return render(request, 'db/update.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
 
 def delete(request):
+    if request.method == 'POST':
+        if 'delete_rybak_imie' in request.POST:
+            imie = request.POST['rybak_imie']
+            query = f"delete from projekt.rybak where imie like '{str(imie)}%'"
+
+        elif 'delete_rybak_ryby' in request.POST:
+            ilosc = request.POST['rybak_ryby']
+            query = f"delete from projekt.rybak where rybak_id in (select l.rybak from projekt.lista l group by l.rybak having sum(l.ilosc) > {str(ilosc)})"
+
+        elif 'delete_rybak_wiek' in request.POST:
+            wiek = request.POST['rybak_wiek']
+            query = f"delete from projekt.rybak where wiek > {str(wiek)}"
+
+        elif 'delete_lista_legalne' in request.POST:
+            legalne = request.POST.get('lista_legalne', False)
+            if legalne == 'on':
+                legalne = True
+            else:
+                legalne = False
+            query = f"delete from projekt.lista where zwierze in (select z.nazwa from projekt.zwierze z where z.legalna = {str(legalne)})"
+
+        elif 'delete_lista_rybak' in request.POST:
+            legalne = request.POST.get('lista_rybak', False)
+            if legalne == 'on':
+                legalne = 'not null'
+            else:
+                legalne = 'null'
+            query = f"delete from projekt.lista where rybak in (select r.rybak_id from projekt.rybak r where r.licencja_id is {str(legalne)})"
+
+        elif 'delete_lista_zbiornik' in request.POST:
+            legalne = request.POST.get('lista_zbiornik', False)
+            if legalne == 'on':
+                legalne = True
+            else:
+                legalne = False
+            query = f"delete from projekt.lista where zwierze in (select z.nazwa from projekt.zwierze z join projekt.zwierze_zbiornik zb on z.nazwa = zb.zwierze join projekt.zbiornik zbior on zbior.nazwa = zb.zbiornik where zbior.legalny = {str(legalne)})"
+
+
+        try:
+            # Attempt to execute the raw SQL query using the function
+            execute_raw_sql_query(query)
+
+            # Pass the query and results to the template
+            return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+        except Exception as e:
+            # Handle exceptions (e.g., invalid SQL syntax)
+            error_message = f"Błąd wywołania zapytania: {str(e).split('CONTEXT')[0]}"
+            if error_message == "Błąd wywołania zapytania: 'NoneType' object is not iterable":
+                return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            return render(request, 'db/delete.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
     return render(request, 'db/delete.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
 
 
@@ -184,6 +237,8 @@ def insert(request):
             zwierze = request.POST['zwierze_zbiornik_zwierze']
             query = f"insert into projekt.zwierze_zbiornik (zwierze, zbiornik) values ('{str(zwierze)}', '{str(zbiornik)}')"
 
+        else:
+            query = ''
 
         try:
             # Attempt to execute the raw SQL query using the function
@@ -199,3 +254,5 @@ def insert(request):
             return render(request, 'db/insert.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
 
     return render(request, 'db/insert.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+
+

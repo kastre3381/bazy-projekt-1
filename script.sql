@@ -302,6 +302,7 @@ create trigger oddzial_glowny_deleter before delete on projekt.oddzial_glowny fo
 
 
 
+
 --------------- dodawanie danych do bazy ---------------------------
 
 
@@ -1229,8 +1230,56 @@ VALUES
  alter table projekt.rybak disable trigger list_creator;
  alter table projekt.zbiornik disable trigger legal_setter;
  alter table projekt.rybak disable trigger licence_creator;
-
+ alter table projekt.zbiornik  disable trigger animal_adder;
  
+
+---------dodanie wyzwalacza preventujacych dodawanie powtarzajacych sie wartosci------------------
+ 
+--create or replace function check_if_zwierze_in_zbiornik() returns trigger as 
+-- $$
+-- begin 
+-- 	if exists (select 1 from projekt.zwierze_zbiornik zz where zz.zwierze = new.zwierze) then 
+-- 		raise exception 'Zwierze "%" jest juz w zbiorniku "%"', new.zwierze, new.zbiornik;
+-- 		return null;
+-- 	end if;
+-- 	return new;
+-- end
+-- $$
+-- language plpgsql;
+--
+--create trigger add_to_zwierze_zbiornik before insert on projekt.zwierze_zbiornik for each row execute procedure check_if_zwierze_in_zbiornik();
+--
+--
+--
+--create or replace function check_if_zbiornik() returns trigger as 
+-- $$
+-- begin 
+-- 	if exists (select 1 from projekt.zbiornik zz where zz.nazwa = new.nazwa) then 
+-- 		raise exception 'Zbiornik "%" jest juz zarejestrowany w bazie', new.nazwa;
+-- 		return null;
+-- 	end if;
+-- 	return new;
+-- end
+-- $$
+-- language plpgsql;
+--
+--create trigger add_to_zbiornik before insert on projekt.zbiornik for each row execute procedure check_if_zbiornik();
+--
+--create or replace function check_if_lista() returns trigger as 
+-- $$
+-- begin 
+-- 	if exists (select 1 from projekt.lista zz where zz.rybak_id = new.rybak_id) then 
+-- 		raise exception 'Zbiornik "%" jest juz zarejestrowany w bazie', new.nazwa;
+-- 		return null;
+-- 	end if;
+-- 	return new;
+-- end
+-- $$
+-- language plpgsql;
+--
+--create trigger add_to_lista before insert on projekt.lista for each row execute procedure check_if_lista();
+
+
 -- drop schema projekt cascade;
 
  
