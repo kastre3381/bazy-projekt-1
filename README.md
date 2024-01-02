@@ -9,14 +9,14 @@ Po sklonowaniu repo instalujemy następujące pakiety/moduły:
 </ul>
 
 Następnie przechodzimy do katalogu  
-'''
+```
 bazy-projekt-1 
-'''
+```
 i wywołujemy: <br/>
-'''
+```
 python3 manage.py runserver
-'''
+```
 lub <br/>
-'''
+```
 python manage.py runserver
-'''
+```
