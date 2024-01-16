@@ -33,7 +33,9 @@
 
 
 <br><br>
-{% if error_message %}
+{% if query %}
+    <p class="h4" style="color:red">{{ query }}</p>
+{% elif error_message %}
     <p class="h4" style="color:red">{{ error_message }}</p>
 {% elif results %}
     <p class="h4" style="color:red">{{ query }}</p>

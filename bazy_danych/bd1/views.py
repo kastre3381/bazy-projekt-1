@@ -255,4 +255,24 @@ def insert(request):
 
     return render(request, 'db/insert.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
 
+def special(request):
+    if request.method == 'POST':
+        if 'submit_special_rybak' in request.POST:
+            rybak_id = request.POST['rybak_id_special']
+            sklep_id = request.POST['sklep_id_special']
+            
+            query = f"select sell_animals({str(rybak_id)},'{str(sklep_id)}')"
 
+        try:
+            # Attempt to execute the raw SQL query using the function
+            execute_raw_sql_query(query)
+
+            # Pass the query and results to the template
+            return render(request, 'db/special.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+        except Exception as e:
+            # Handle exceptions (e.g., invalid SQL syntax)
+            error_message = f"Błąd wywołania zapytania: {str(e).split('CONTEXT')[0]}"
+            if error_message == "Błąd wywołania zapytania: 'NoneType' object is not iterable":
+                return render(request, 'db/special.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            return render(request, 'db/special.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+    return render(request, 'db/special.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
