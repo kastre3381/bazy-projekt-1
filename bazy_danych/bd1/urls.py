@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from django.contrib.auth.views import LogoutView
 
+# adresy url projektu
 urlpatterns =[
     path('', views.home, name='home'),
     path('home', views.home, name='home'),
@@ -14,7 +15,6 @@ urlpatterns =[
     path('select/', views.select, name='select'),
     path('delete/', views.delete, name='delete'),
     path('insert/', views.insert, name='insert'),
-    path('update/', views.update, name='update'),
     path('special/', views.special, name='special'),
     path('rewrite/', views.rewrite, name='rewrite'),
 ]

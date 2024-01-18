@@ -1,6 +1,7 @@
 from django.db import connection
 from django.contrib.auth.models import User, Group
 
+# funkcja do wykonywania poleceń SQL
 def execute_raw_sql_query(query, params=None):
     with connection.cursor() as cursor:
         if params:
@@ -14,5 +15,6 @@ def execute_raw_sql_query(query, params=None):
         
     return results
 
+# funkcja do sprawdzania przynależności użytkownika do danej grupy
 def group_checker(request, name):
     return request.user.groups.filter(name=name).exists()

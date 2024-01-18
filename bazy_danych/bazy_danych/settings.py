@@ -76,6 +76,7 @@ WSGI_APPLICATION = 'bazy_danych.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
+# Łączenie z bazą danych PostgreSQL
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',

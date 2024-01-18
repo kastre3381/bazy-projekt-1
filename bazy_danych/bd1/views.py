@@ -5,19 +5,19 @@ from .utils import execute_raw_sql_query, group_checker
 from django.shortcuts import render
 from .forms import *
 from django.contrib.auth import login, logout, authenticate
-# Create your views here.
+# widok strony domowej
 def home(request):
     return render(request, 'main/home.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok ERD
 def erd(request):
     return render(request, 'main/erd.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok dokumentacji
 def dokumentacja(request):
     return render(request, 'main/dokumentacja.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok widok Sktrptu SQL
 def skrypt(request):
     return render(request, 'main/script.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok Poleceń własnych
 def display_data(request):
     query = request.GET.get('query', '')
     
@@ -37,7 +37,7 @@ def display_data(request):
     else:
         return render(request, 'db/admin_bar.html', {'query': None, 'results': None})
 
-
+# widok SELECT
 def select(request):
     selected_option = request.GET.get('query')
 
@@ -85,10 +85,7 @@ def select(request):
         results = []
 
     return render(request, 'db/show.html', {'results': results, 'query': query, 'is_rybak': group_checker(request, 'rybak'), 'straznik': group_checker(request, 'straznik')})
-
-def update(request):
-    return render(request, 'db/update.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok DELETE
 def delete(request):
     if request.method == 'POST':
         if 'delete_rybak_imie' in request.POST:
@@ -127,12 +124,12 @@ def delete(request):
                 return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
             return render(request, 'db/delete.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
     return render(request, 'db/delete.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok Zresetuj dane w bazie
 def rewrite(request):
     query = f"select * from rewrite_db()"
     execute_raw_sql_query(query)
     return render(request, 'main/home.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok Rejestracji nowego konta
 def sign_up(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -144,13 +141,13 @@ def sign_up(request):
         form = RegisterForm()
 
     return render(request, 'registration/sign_up.html', {'form': form})
-
+# widok Wylogowania się
 def custom_logout(request):
     logout(request)
     return redirect('/login') 
 
 
-
+# widok INSERT
 def insert(request):
     if request.method == 'POST':
         if 'submit_rybak' in request.POST:
@@ -243,7 +240,7 @@ def insert(request):
             return render(request, 'db/insert.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
     return render(request, 'db/insert.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
-
+# widok SPECIAL
 def special(request):
     if request.method == 'POST':
         if 'submit_special_rybak' in request.POST:
