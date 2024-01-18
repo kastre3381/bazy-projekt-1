@@ -41,15 +41,15 @@
                                     <a class="nav-link" href="/insert">INSERT</a>
                                 </li>
                                 {% endif %}
-                                <li class="nav-item">
+                                {% comment %} <li class="nav-item">
                                     <a class="nav-link" href="/update">UPDATE</a>
-                                </li>
+                                </li> {% endcomment %}
                                 <li class="nav-item">
                                     <a class="nav-link" href="/delete">DELETE</a>
                                 </li>
-                                {% comment %} <li class="nav-item">
+                                <li class="nav-item">
                                     <a class="nav-link" href="/special">SPECIAL</a>
-                                </li> {% endcomment %}
+                                </li> 
                             {% endif %}
                         {% endif %}
                     </ul>
@@ -57,9 +57,12 @@
                 <div>
                     <ul class="navbar-nav">
                         {% if user.is_authenticated %}
-                        <span class="navbar-text">{{user.username}} | </span>
+                        <span class="navbar-text"><strong>Witaj, {{user.username}}&nbsp;&nbsp;</strong></span>
                         <li class="nav-item">
-                            <a class="nav-link" href="/logout">Wyloguj się</a>
+                            <a class="nav-link" href="/rewrite">Zresetuj dane w bazie    </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Wyloguj się    </a>
                         </li>
                         {% else %}
                         <li class="nav-item">

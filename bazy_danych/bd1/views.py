@@ -7,16 +7,16 @@ from .forms import *
 from django.contrib.auth import login, logout, authenticate
 # Create your views here.
 def home(request):
-    return render(request, 'main/home.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+    return render(request, 'main/home.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def erd(request):
-    return render(request, 'main/erd.html')
+    return render(request, 'main/erd.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def dokumentacja(request):
-    return render(request, 'main/dokumentacja.html')
+    return render(request, 'main/dokumentacja.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def skrypt(request):
-    return render(request, 'main/script.html')
+    return render(request, 'main/script.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def display_data(request):
     query = request.GET.get('query', '')
@@ -39,8 +39,8 @@ def display_data(request):
 
 
 def select(request):
-    selected_option = request.GET.get('query', '')
-    
+    selected_option = request.GET.get('query')
+
     if selected_option == '1':
         query = 'select * from projekt.rybak r order by r.nazwisko'
         results = execute_raw_sql_query(query)
@@ -84,11 +84,10 @@ def select(request):
         query = ''
         results = []
 
-
-    return render(request, 'db/show.html', {'results': results, 'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
+    return render(request, 'db/show.html', {'results': results, 'query': query, 'is_rybak': group_checker(request, 'rybak'), 'straznik': group_checker(request, 'straznik')})
 
 def update(request):
-    return render(request, 'db/update.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+    return render(request, 'db/update.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def delete(request):
     if request.method == 'POST':
@@ -112,37 +111,27 @@ def delete(request):
                 legalne = False
             query = f"delete from projekt.lista where zwierze in (select z.nazwa from projekt.zwierze z where z.legalna = {str(legalne)})"
 
-        elif 'delete_lista_rybak' in request.POST:
-            legalne = request.POST.get('lista_rybak', False)
-            if legalne == 'on':
-                legalne = 'not null'
-            else:
-                legalne = 'null'
-            query = f"delete from projekt.lista where rybak in (select r.rybak_id from projekt.rybak r where r.licencja_id is {str(legalne)})"
-
-        elif 'delete_lista_zbiornik' in request.POST:
-            legalne = request.POST.get('lista_zbiornik', False)
-            if legalne == 'on':
-                legalne = True
-            else:
-                legalne = False
-            query = f"delete from projekt.lista where zwierze in (select z.nazwa from projekt.zwierze z join projekt.zwierze_zbiornik zb on z.nazwa = zb.zwierze join projekt.zbiornik zbior on zbior.nazwa = zb.zbiornik where zbior.legalny = {str(legalne)})"
-
+        else:
+            query = ''
 
         try:
             # Attempt to execute the raw SQL query using the function
             execute_raw_sql_query(query)
 
             # Pass the query and results to the template
-            return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
         except Exception as e:
             # Handle exceptions (e.g., invalid SQL syntax)
-            error_message = f"Błąd wywołania zapytania: {str(e).split('CONTEXT')[0]}"
-            if error_message == "Błąd wywołania zapytania: 'NoneType' object is not iterable":
-                return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
-            return render(request, 'db/delete.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
-    return render(request, 'db/delete.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            error_message = f"{str(e).split('CONTEXT')[0]}"
+            if error_message == "'NoneType' object is not iterable":
+                return render(request, 'db/delete.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
+            return render(request, 'db/delete.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
+    return render(request, 'db/delete.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
+def rewrite(request):
+    query = f"select * from rewrite_db()"
+    execute_raw_sql_query(query)
+    return render(request, 'main/home.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def sign_up(request):
     if request.method == 'POST':
@@ -245,34 +234,40 @@ def insert(request):
             execute_raw_sql_query(query)
 
             # Pass the query and results to the template
-            return render(request, 'db/insert.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            return render(request, 'db/insert.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
         except Exception as e:
             # Handle exceptions (e.g., invalid SQL syntax)
-            error_message = f"Błąd wywołania zapytania: {str(e).split('CONTEXT')[0]}"
-            if error_message == "Błąd wywołania zapytania: 'NoneType' object is not iterable":
-                return render(request, 'db/insert.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
-            return render(request, 'db/insert.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            error_message = f"{str(e).split('CONTEXT')[0]}"
+            if error_message == "'NoneType' object is not iterable":
+                return render(request, 'db/insert.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
+            return render(request, 'db/insert.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
-    return render(request, 'db/insert.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+    return render(request, 'db/insert.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
 
 def special(request):
     if request.method == 'POST':
         if 'submit_special_rybak' in request.POST:
-            rybak_id = request.POST['rybak_id_special']
-            sklep_id = request.POST['sklep_id_special']
+            rybak_id = request.POST.get('rybak_id_special', '')
+            sklep_id = request.POST.get('sklep_id_special', '')
             
-            query = f"select sell_animals({str(rybak_id)},'{str(sklep_id)}')"
+            query = f"select * from sell_animals({str(rybak_id)},'{str(sklep_id)}')"
+
+        if 'submit_special_straznik' in request.POST:
+            rybak_id = request.POST.get('rybak_id_special', '')
+            straznik_id = request.POST.get('straznik_id_special', '')
+            
+            query = f"select * from check_rybak_licence({str(rybak_id)},'{str(straznik_id)}')"
 
         try:
             # Attempt to execute the raw SQL query using the function
             execute_raw_sql_query(query)
 
             # Pass the query and results to the template
-            return render(request, 'db/special.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            return render(request, 'db/special.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
         except Exception as e:
             # Handle exceptions (e.g., invalid SQL syntax)
-            error_message = f"Błąd wywołania zapytania: {str(e).split('CONTEXT')[0]}"
-            if error_message == "Błąd wywołania zapytania: 'NoneType' object is not iterable":
-                return render(request, 'db/special.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
-            return render(request, 'db/special.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
-    return render(request, 'db/special.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'is_straznik')})
+            error_message = f"{str(e).split('CONTEXT')[0]}"
+            if error_message == "'NoneType' object is not iterable":
+                return render(request, 'db/special.html', {'query': query, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
+            return render(request, 'db/special.html', {'query': query, 'error_message': error_message, 'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})
+    return render(request, 'db/special.html', {'is_rybak': group_checker(request, 'rybak'), 'is_straznik': group_checker(request, 'straznik')})

@@ -8,16 +8,28 @@
         <div class="form-group">
             {% csrf_token %}
             <label for="rybak_id_special">ID rybaka:</label>
-            <input type="number" class="form-control" name="rybak_id" required>
+            <input type="number" class="form-control" name="rybak_id_special" required>
             <br>
             <label for="sklep_id_special">Nazwa rynku/sklepu:</label>
-            <input type="text" class="form-control" name="sklep_id" required>
+            <input type="text" class="form-control" name="sklep_id_special" required>
             <br>
             <button type="submit" name="submit_special_rybak" class="btn btn-primary">Sprzedaj towar</button>
         </div>
     </form>
 {% else %}
-
+<br>
+    <form method="post" action="{% url 'special' %}">
+        <div class="form-group">
+            {% csrf_token %}
+            <label for="rybak_id_special">ID rybaka:</label>
+            <input type="number" class="form-control" name="rybak_id_special" required>
+            <br>
+            <label for="straznik_id_special">ID strażnika:</label>
+            <input type="text" class="form-control" name="straznik_id_special" required>
+            <br>
+            <button type="submit" name="submit_special_straznik" class="btn btn-primary">Sprawdź rybaka</button>
+        </div>
+    </form>
 {% endif %}
 
 

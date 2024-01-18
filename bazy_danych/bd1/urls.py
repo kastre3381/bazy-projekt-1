@@ -16,4 +16,5 @@ urlpatterns =[
     path('insert/', views.insert, name='insert'),
     path('update/', views.update, name='update'),
     path('special/', views.special, name='special'),
+    path('rewrite/', views.rewrite, name='rewrite'),
 ]
