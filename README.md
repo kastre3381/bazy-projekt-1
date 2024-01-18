@@ -40,4 +40,4 @@ python manage.py runserver
 
 ### Dokumentacja znaduje się w zakładce 'Dokumentacja'
 
-### Skrypt użyty do wygenerowania danych w bazie znajduje się w katalogu 'bazy_danych' pod nazwą 'script.sql'
+### Skrypt użyty do wygenerowania danych w bazie znajduje się w katalogu 'bazy_danych' pod nazwą 'script.sql' lub w zakładce 'Podgląd skryptu SQL'
